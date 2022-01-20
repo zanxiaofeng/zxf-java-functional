@@ -1,4 +1,4 @@
 package zxf.java.functional.function;
 
-public class Lambda {
+public class LambdaUsage {
 }

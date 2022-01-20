@@ -1,4 +1,4 @@
-package zxf.java.functional.pattern.oop;
+package zxf.java.functional.pattern.designpattern.oop;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,4 +1,4 @@
-package zxf.java.functional.pattern.functional;
+package zxf.java.functional.pattern.designpattern.functional.case1;
 
 import java.io.IOException;
 import java.nio.file.Paths;
