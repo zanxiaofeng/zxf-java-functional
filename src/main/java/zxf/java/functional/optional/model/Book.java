@@ -1,4 +1,4 @@
-package zxf.java.functional.optional.json;
+package zxf.java.functional.optional.model;
 
 import java.util.Optional;
 
