@@ -8,6 +8,10 @@ import java.util.function.Function;
 public class FunctionalCache {
     public static <T, R> Function<T, R> cachedFunction(Function<T, R> realFunction) {
         final Map<T, R> cache = new HashMap<>();
+        return cachedFunction(cache, realFunction);
+    }
+
+    public static <T, R> Function<T, R> cachedFunction(Map<T, R> cache, Function<T, R> realFunction) {
         return (t) -> {
             if (cache.containsKey(t)) {
                 return cache.get(t);
@@ -21,7 +25,8 @@ public class FunctionalCache {
     public static <T, U, R> BiFunction<T, U, R> cachedFunction(BiFunction<T, U, R> realFunction) {
         final Map<T, Map<U, R>> cache = new HashMap<>();
         return (t, u) -> {
-            Map<U, R> innerCache = cache.putIfAbsent(t, new HashMap<>());
+            cache.putIfAbsent(t, new HashMap<>());
+            Map<U, R> innerCache = cache.get(t);
             if (innerCache.containsKey(u)) {
                 return innerCache.get(u);
             }

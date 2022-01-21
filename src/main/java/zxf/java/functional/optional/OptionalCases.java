@@ -80,13 +80,11 @@ public class OptionalCases {
         });
     }
 
-
-    private static Optional<Integer> getOptInteger() {
-        return Optional.of(232);
-    }
-
     private static Integer getInteger() {
         return 232;
     }
 
+    private static Optional<Integer> getOptInteger() {
+        return Optional.of(232);
+    }
 }
