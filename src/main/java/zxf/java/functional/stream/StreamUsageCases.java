@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class StreamUsageCases {
@@ -19,8 +19,12 @@ public class StreamUsageCases {
     }
 
     public static void use_case1() throws IOException {
-        Map<String, Integer> wordCount = splitter.splitAsStream(Files.readString(Paths.get("./article.txt")))
-                .filter(x -> !stopWords.contains(x.toLowerCase(Locale.ROOT))).reduce(new HashMap<String, Integer>(), (r, w) -> {
+        String fileContent = Files.readString(Paths.get("./article.txt"));
+        Map<String, Integer> wordCount = splitter.splitAsStream(fileContent)
+                .map(String::toLowerCase)
+                .filter(Predicate.not(String::isBlank))
+                .filter(Predicate.not(stopWords::contains))
+                .reduce(new HashMap<>(), (r, w) -> {
                     r.compute(w, (k, v) -> v == null ? 1 : v + 1);
                     return r;
                 }, (r1, r2) -> {
