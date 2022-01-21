@@ -17,21 +17,21 @@ public class FunctionalFileProcessor {
 
     public interface PDF {
         static boolean shouldHandle(Path file) {
-            return file.getFileName().endsWith(".pdf");
+            return file.getFileName().toString().endsWith(".pdf");
         }
 
         static void handle(Path file) {
-            System.out.println("Processing pdf file " + file.getFileName());
+            System.out.println("Processing pdf file: " + file.getFileName());
         }
     }
 
     public static class Word {
         public static boolean shouldHandle(Path file) {
-            return file.getFileName().endsWith(".docx");
+            return file.getFileName().toString().endsWith(".docx");
         }
 
         public static void handle(Path file) {
-            System.out.println("Processing word file" + file.getFileName());
+            System.out.println("Processing word file: " + file.getFileName());
         }
     }
 }

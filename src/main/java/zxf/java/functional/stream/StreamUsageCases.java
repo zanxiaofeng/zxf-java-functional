@@ -19,7 +19,7 @@ public class StreamUsageCases {
     }
 
     public static void use_case1() throws IOException {
-        String fileContent = Files.readString(Paths.get("./article.txt"));
+        String fileContent = Files.readString(Paths.get("./files/article.txt"));
         Map<String, Integer> wordCount = splitter.splitAsStream(fileContent)
                 .map(String::toLowerCase)
                 .filter(Predicate.not(String::isBlank))

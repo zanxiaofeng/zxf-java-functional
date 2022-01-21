@@ -11,11 +11,11 @@ public class FunctionalFileProcessorCases {
 
     public static void use_case1() throws IOException {
         FunctionalFileProcessor functionalFileProcessor = FunctionalFileProcessor.pdf();
-        functionalFileProcessor.process(Paths.get(""));
+        functionalFileProcessor.process(Paths.get("./files"));
     }
 
     public static void use_case2() throws IOException {
         FunctionalFileProcessor functionalFileProcessor = FunctionalFileProcessor.word();
-        functionalFileProcessor.process(Paths.get(""));
+        functionalFileProcessor.process(Paths.get("./files"));
     }
 }

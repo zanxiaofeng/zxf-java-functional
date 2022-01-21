@@ -11,11 +11,11 @@ public class OOPFileProcessorCases {
 
     public static void use_case1() throws IOException {
         OOPFileProcessor fileProcessor = new PDFOOPFileProcessor();
-        fileProcessor.process(Paths.get(""));
+        fileProcessor.process(Paths.get("./files"));
     }
 
     public static void use_case2() throws IOException {
         OOPFileProcessor fileProcessor = new WordOOPFileProcessor();
-        fileProcessor.process(Paths.get(""));
+        fileProcessor.process(Paths.get("./files"));
     }
 }

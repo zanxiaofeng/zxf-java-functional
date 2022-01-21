@@ -13,7 +13,7 @@
 ### 不变量
 ### 元组
 
-# Ｊava８引入的函数式
+# Java８引入的函数式
 >- Functional Interface
 >- Lambda
 >- Optional
@@ -52,7 +52,7 @@
 ### Stream 基础
 ### Stream Collect
 ### Stream Reduce
-### Stream P
+### Stream Parallel
 ### Stream 基本类型流
 
 # 三大范式中数据与函数关系

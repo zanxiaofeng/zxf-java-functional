@@ -12,13 +12,13 @@ public class FunctionalFileProcessorCases {
     public static void use_case1() throws IOException {
         FunctionalFileProcessor functionalFileProcessor = new FunctionalFileProcessor();
         functionalFileProcessor.process(
-                Paths.get(""), FunctionalFileProcessor.Handlers.pdf());
+                Paths.get("./files"), FunctionalFileProcessor.Handlers.pdf());
     }
 
     public static void use_case2() throws IOException {
         FunctionalFileProcessor functionalFileProcessor = new FunctionalFileProcessor();
         functionalFileProcessor.process(
-                Paths.get(""),
+                Paths.get("./files"),
                 FunctionalFileProcessor.Handlers.pdf());
     }
 }

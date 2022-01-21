@@ -5,11 +5,11 @@ import java.nio.file.Path;
 public class WordOOPFileProcessor extends OOPFileProcessor {
     @Override
     protected boolean shouldHandle(Path file) {
-        return file.getFileName().endsWith(".docx");
+        return file.getFileName().toString().endsWith(".docx");
     }
 
     @Override
     protected void handle(Path file) {
-        System.out.println("Processing word file " + file.getFileName());
+        System.out.println("Processing word file: " + file.getFileName());
     }
 }

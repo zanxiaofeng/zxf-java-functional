@@ -12,7 +12,7 @@ public class FunctionalFileProcessorCases {
     public static void use_case1() throws IOException {
         FunctionalFileProcessor functionalFileProcessor = new FunctionalFileProcessor();
         functionalFileProcessor.process(
-                Paths.get(""),
+                Paths.get("./files"),
                 FunctionalFileProcessor.PDF::shouldHandle,
                 FunctionalFileProcessor.PDF::handle);
     }
@@ -20,7 +20,7 @@ public class FunctionalFileProcessorCases {
     public static void use_case2() throws IOException {
         FunctionalFileProcessor functionalFileProcessor = new FunctionalFileProcessor();
         functionalFileProcessor.process(
-                Paths.get(""),
+                Paths.get("./files"),
                 FunctionalFileProcessor.Word::shouldHandle,
                 FunctionalFileProcessor.Word::handle);
     }
