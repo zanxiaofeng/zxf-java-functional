@@ -20,28 +20,58 @@
 >- Stream
 
 # FunctionalInterface
->| Interface              | Parameter      | Return     |      Method      |         Description             |　　　      　Others    　 　　　  |
->|------------------------|----------------|------------|------------------|---------------------------------|--------------------------------|
->|  Supplier<T>           |   N/A          |   T        |      get         | 提供一个Ｔ类型的值　　　　　　　      |            N/A                 |
->|  Consumer<T>           |   T            |   void     |      accept      | 处理一个Ｔ类型的值　　　　　　　      |            N/A                 |
->|  BiConsumer<T,U>       |   T,U          |   void     |      accept      | 处理Ｔ和Ｕ类型的值　　　　　　　      |            N/A                 |
->|  Function<T,R>         |   T            |   R        |      apply       | 有一个Ｔ类型参数的函数　　　　　      |            N/A                 |
->|  BiFunction<T,U,R>     |   T,U          |   R        |      apply       | 有一个Ｔ类型和一个U类型参数的函数     |            N/A                 |
->|  UnaryOperator<T>      |   T            |   T        |      apply       | 类型T上的一元操作                  |            N/A                 |
->|  BinaryOperator<T>     |   T,T          |   T        |      apply       | 类型T上的二元操作                  |            N/A                 |
->|  Predicate<T>          |   T            |   Boolean  |      test        | 布尔值函数                        |            N/A                 |
->|  BiPredicate<T,U>      |   T,U          |   Boolean  |      test        | 有两个参数的布尔值函数              |            N/A                 |
+>| Interface              | Parameter      | Return     |      Method      |         Description             |　　　      　Others    　 　　　   |
+>|------------------------|----------------|------------|------------------|---------------------------------|---------------------------------|
+>|  Supplier<T>           |   N/A          |   T        |      get         | 提供一个Ｔ类型的值　　　　　　　      |            N/A                  |
+>|  Consumer<T>           |   T            |   void     |      accept      | 处理一个Ｔ类型的值　　　　　　　      |   andThen                       |
+>|  BiConsumer<T,U>       |   T,U          |   void     |      accept      | 处理Ｔ和Ｕ类型的值　　　　　　　      |   andThen                       |
+>|  Function<T,R>         |   T            |   R        |      apply       | 有一个Ｔ类型参数的函数　　　　　      |   compose, andThen, identity    |
+>|  BiFunction<T,U,R>     |   T,U          |   R        |      apply       | 有一个Ｔ类型和一个U类型参数的函数     |   andThen                       |
+>|  UnaryOperator<T>      |   T            |   T        |      apply       | 类型T上的一元操作                  |   compose, andThen, identity    |
+>|  BinaryOperator<T>     |   T,T          |   T        |      apply       | 类型T上的二元操作                  |   andThen, maxBy, minBy         |
+>|  Predicate<T>          |   T            |   Boolean  |      test        | 单个参数Ｔ上的布尔值函　　　　　　　	 |   and, or, nagate, isEqual, not |
+>|  BiPredicate<T,U>      |   T,U          |   Boolean  |      test        | 有两个参数T和Ｕ的布尔值函数　　　　　　|   and, or, nagate               |
 
 # Lambda
+>- 标准写法
+`(product)->{
+	return product.getId();
+}`
+>- 单行写法
+`(product)->product.getId()`
+>- 方法引用
+>>- object:instanceMethod
+>>- Class::instanceMethod
+>>- Class::staticMethod
+>- 构造器引用
+>>- Class::new
+
 
 # Optional
 ### Optional 基础
 >- 创建
+>>- `public static <T> Optional<T> of(T value)`
+>>- `public static <T> Optional<T> ofNullable(T value)`
+>>- `public static<T> Optional<T> empty()`
 >- 取值
+>>- `public T orElse(T other)`
+>>- `public T orElseGet(Supplier<? extends T> supplier)`
+>>- `public <X extends Throwable> T orElseThrow(Supplier<? extends X> exceptionSupplier)`
 >- 消费
+>>- `public void ifPresent(Consumer<? super T> action)`
+>>- `public void ifPresentOrElse(Consumer<? super T> action, Runnable emptyAction)`
 >- 管道化处理
+>>- `public Optional<T> filter(Predicate<? super T> predicate)`
+>>- `public Optional<T> or(Supplier<? extends Optional<? extends T>> supplier)`
+>>- `public <U> Optional<U> map(Function<? super T, ? extends U> mapper)`
+>>- `public <U> Optional<U> flatMap(Function<? super T, ? extends Optional<? extends U>> mapper)`
 >- 转换为流
+>>- `public Stream<T> stream()`
 >- 不推荐使用
+>>- `public T orElseThrow()`
+>>- `public T get()`
+>>- `public boolean isPresent()`
+>>- `public boolean isEmpty()`
 ### Optional 使用场景
 >- Case 1: orElse
 >- Case 2: orElseThrow

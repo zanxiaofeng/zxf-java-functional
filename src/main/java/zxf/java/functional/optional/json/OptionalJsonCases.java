@@ -18,6 +18,5 @@ public class OptionalJsonCases {
         String json = mapper.writeValueAsString(book);
         System.out.println(json);
         Book newBook = mapper.readValue(json, Book.class);
-
     }
 }
