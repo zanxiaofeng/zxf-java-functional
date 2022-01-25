@@ -1,5 +1,9 @@
 package zxf.java.functional.pattern.base.closure.cache;
 
+import zxf.java.functional.pattern.base.TriFunction;
+import zxf.java.functional.pattern.base.closure.cache.tree.Mapped2LTree;
+import zxf.java.functional.pattern.base.closure.cache.tree.Mapped3LTree;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -23,16 +27,27 @@ public class FunctionalCache {
     }
 
     public static <T, U, R> BiFunction<T, U, R> cachedFunction(BiFunction<T, U, R> realFunction) {
-        final Map<T, Map<U, R>> cache = new HashMap<>();
+        final Mapped2LTree<T, U, R> cache = new Mapped2LTree();
         return (t, u) -> {
-            cache.putIfAbsent(t, new HashMap<>());
-            Map<U, R> innerCache = cache.get(t);
-            if (innerCache.containsKey(u)) {
-                return innerCache.get(u);
+            if (cache.contains(t, u)) {
+                return cache.get(t, u);
             }
 
             R r = realFunction.apply(t, u);
-            innerCache.put(u, r);
+            cache.put(t, u, r);
+            return r;
+        };
+    }
+
+    public static <T, U, P, R> TriFunction<T, U, P, R> cachedFunction(TriFunction<T, U, P, R> realFunction) {
+        final Mapped3LTree<T, U, P, R> cache = new Mapped3LTree();
+        return (t, u, p) -> {
+            if (cache.contains(t, u, p)) {
+                return cache.get(t, u, p);
+            }
+
+            R r = realFunction.apply(t, u, p);
+            cache.put(t, u, p, r);
             return r;
         };
     }
