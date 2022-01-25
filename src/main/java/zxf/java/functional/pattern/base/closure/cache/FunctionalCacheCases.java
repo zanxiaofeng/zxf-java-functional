@@ -2,7 +2,6 @@ package zxf.java.functional.pattern.base.closure.cache;
 
 import zxf.java.functional.pattern.base.TriFunction;
 
-import java.util.Arrays;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -15,48 +14,42 @@ public class FunctionalCacheCases {
     }
 
     public static void use_case1() {
-        Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(x -> {
-            System.out.println("calculate result for " + x + " is " + realCalculate(x));
-        });
-
+        System.out.println("\n#case 1: ");
+        System.out.println("calculate result for 10 is " + realCalculate(10));
+        System.out.println("calculate result for 10 is " + realCalculate(10));
+        System.out.println("calculate result for 10 is " + realCalculate(10));
+        System.out.println("*");
         Function<Integer, Integer> cachedCalculate = FunctionalCache.cachedFunction(FunctionalCacheCases::realCalculate);
-        Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(x -> {
-            System.out.println("calculate result by cache for " + x + " is " + cachedCalculate.apply(x));
-        });
+        System.out.println("calculate result by cache for 10 is " + cachedCalculate.apply(10));
+        System.out.println("calculate result by cache for 10 is " + cachedCalculate.apply(10));
+        System.out.println("calculate result by cache for 11 is " + cachedCalculate.apply(11));
+        System.out.println("calculate result by cache for 11 is " + cachedCalculate.apply(11));
     }
 
     public static void use_case2() {
-        Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(x -> {
-            Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(y -> {
-                System.out.println("calculate result for " + x + ", " + y + " is " + realCalculate2(x, y));
-            });
-        });
-
+        System.out.println("\n#case 2: ");
+        System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
+        System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
+        System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
+        System.out.println("*");
         BiFunction<Integer, Integer, Integer> cachedCalculate2 = FunctionalCache.cachedFunction(FunctionalCacheCases::realCalculate2);
-        Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(x -> {
-            Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(y -> {
-                System.out.println("calculate result by cache for " + x + ", " + y + " is " + cachedCalculate2.apply(x, y));
-            });
-        });
+        System.out.println("calculate result by cache for 10, 10 is " + cachedCalculate2.apply(10, 10));
+        System.out.println("calculate result by cache for 10, 10 is " + cachedCalculate2.apply(10, 10));
+        System.out.println("calculate result by cache for 11, 11 is " + cachedCalculate2.apply(11, 11));
+        System.out.println("calculate result by cache for 11, 11 is " + cachedCalculate2.apply(11, 11));
     }
 
     public static void use_case3() {
-        Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(x -> {
-            Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(y -> {
-                Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(z -> {
-                    System.out.println("calculate result for " + x + ", " + y + ", " + z + " is " + realCalculate3(x, y, z));
-                });
-            });
-        });
-
+        System.out.println("\n#case 3: ");
+        System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
+        System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
+        System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
+        System.out.println("*");
         TriFunction<Integer, Integer, Integer, Integer> cachedCalculate3 = FunctionalCache.cachedFunction(FunctionalCacheCases::realCalculate3);
-        Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(x -> {
-            Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(y -> {
-                Arrays.stream(new Integer[]{10, 20, 30, 10, 20, 30}).forEach(z -> {
-                    System.out.println("calculate result by cache for " + x + ", " + y + ", " + z + " is " + cachedCalculate3.apply(x, y, z));
-                });
-            });
-        });
+        System.out.println("calculate result by cache for 10, 10, 10 is " + cachedCalculate3.apply(10, 10, 10));
+        System.out.println("calculate result by cache for 10, 10, 10 is " + cachedCalculate3.apply(10, 10, 10));
+        System.out.println("calculate result by cache for 11, 11, 11 is " + cachedCalculate3.apply(11, 11, 11));
+        System.out.println("calculate result by cache for 11, 11, 11 is " + cachedCalculate3.apply(11, 11, 11));
     }
 
     public static Integer realCalculate(Integer x) {
