@@ -52,7 +52,7 @@
 >- 创建
 >>- `public static <T> Optional<T> of(T value)`
 >>- `public static <T> Optional<T> ofNullable(T value)`
->>- `public static<T> Optional<T> empty()`
+>>- `public static <T> Optional<T> empty()`
 >- 取值
 >>- `public T orElse(T other)`
 >>- `public T orElseGet(Supplier<? extends T> supplier)`

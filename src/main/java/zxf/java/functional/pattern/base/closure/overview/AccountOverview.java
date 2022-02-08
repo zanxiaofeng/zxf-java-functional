@@ -6,10 +6,14 @@ import java.util.function.Predicate;
 public class AccountOverview {
     private List<Group> groups;
 
-    public static Boolean checkAccount(AccountOverview overview, String accountNumber) {
+    public static Boolean checkAccountNumber(AccountOverview overview, String accountNumber) {
         return overview.groups.stream()
                 .flatMap(group -> group.getAccounts().stream())
                 .anyMatch(Predicate.isEqual(accountNumber));
+    }
+
+    public static Predicate<String> accountChecker(AccountOverview overview) {
+        return (accountNumber) -> checkAccountNumber(overview, accountNumber);
     }
 
     public List<Group> getGroups() {
@@ -22,12 +26,6 @@ public class AccountOverview {
 
     public Boolean checkAccount(String accountNumber) {
         return this.groups.stream()
-                .flatMap(group -> group.getAccounts().stream())
-                .anyMatch(Predicate.isEqual(accountNumber));
-    }
-
-    public Predicate<String> accountChecker() {
-        return (accountNumber) -> this.groups.stream()
                 .flatMap(group -> group.getAccounts().stream())
                 .anyMatch(Predicate.isEqual(accountNumber));
     }
