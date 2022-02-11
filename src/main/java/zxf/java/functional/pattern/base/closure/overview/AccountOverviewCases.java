@@ -1,11 +1,12 @@
 package zxf.java.functional.pattern.base.closure.overview;
 
+import zxf.java.functional.pattern.base.closure.cache.Caching;
 import zxf.java.functional.pattern.base.currying.Currying;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 public class AccountOverviewCases {
@@ -15,6 +16,7 @@ public class AccountOverviewCases {
         case_oop();
         case_functional_1();
         case_functional_2();
+        case_functional_3();
     }
 
     public static void case_procedure() {
@@ -34,11 +36,22 @@ public class AccountOverviewCases {
         accountChecker.test("123456");
     }
 
+    //curring(closure)
     public static void case_functional_2() {
         AccountOverview overview = produce_accountOverview();
-        Function<String, Boolean> accountChecker = Currying.currying(overview, AccountOverview::checkAccountNumber);
-        accountChecker.apply("123456");
+        Predicate<String> accountChecker = Currying.currying(overview, (BiPredicate<? super AccountOverview, String>) AccountOverview::checkAccountNumber);
+        accountChecker.test("123456");
     }
+
+    //curring(closure), compose
+    public static void case_functional_3() {
+        AccountOverview overview = produce_accountOverview();
+        Predicate<String> accountChecker = Currying.currying(overview, (BiPredicate<? super AccountOverview, String>) AccountOverview::checkAccountNumber);
+        Predicate<String> cachedAccountChecker = Caching.cachedPredicate(accountChecker);
+        cachedAccountChecker.test("123456");
+        cachedAccountChecker.test("123456");
+    }
+
 
     private static AccountOverview produce_accountOverview() {
         List<AccountOverview.Account> accounts = new ArrayList<>();

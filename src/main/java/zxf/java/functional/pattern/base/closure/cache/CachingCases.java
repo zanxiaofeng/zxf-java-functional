@@ -6,7 +6,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-public class FunctionalCacheCases {
+public class CachingCases {
     public static void main(String[] args) {
         use_case1();
         use_case2();
@@ -19,7 +19,7 @@ public class FunctionalCacheCases {
         System.out.println("calculate result for 10 is " + realCalculate(10));
         System.out.println("calculate result for 10 is " + realCalculate(10));
         System.out.println("*");
-        Function<Integer, Integer> cachedCalculate = FunctionalCache.cachedFunction(FunctionalCacheCases::realCalculate);
+        Function<Integer, Integer> cachedCalculate = Caching.cachedFunction(CachingCases::realCalculate);
         System.out.println("calculate result by cache for 10 is " + cachedCalculate.apply(10));
         System.out.println("calculate result by cache for 10 is " + cachedCalculate.apply(10));
         System.out.println("calculate result by cache for 11 is " + cachedCalculate.apply(11));
@@ -32,7 +32,7 @@ public class FunctionalCacheCases {
         System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
         System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
         System.out.println("*");
-        BiFunction<Integer, Integer, Integer> cachedCalculate2 = FunctionalCache.cachedFunction(FunctionalCacheCases::realCalculate2);
+        BiFunction<Integer, Integer, Integer> cachedCalculate2 = Caching.cachedFunction(CachingCases::realCalculate2);
         System.out.println("calculate result by cache for 10, 10 is " + cachedCalculate2.apply(10, 10));
         System.out.println("calculate result by cache for 10, 10 is " + cachedCalculate2.apply(10, 10));
         System.out.println("calculate result by cache for 11, 11 is " + cachedCalculate2.apply(11, 11));
@@ -45,7 +45,7 @@ public class FunctionalCacheCases {
         System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
         System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
         System.out.println("*");
-        TriFunction<Integer, Integer, Integer, Integer> cachedCalculate3 = FunctionalCache.cachedFunction(FunctionalCacheCases::realCalculate3);
+        TriFunction<Integer, Integer, Integer, Integer> cachedCalculate3 = Caching.cachedFunction(CachingCases::realCalculate3);
         System.out.println("calculate result by cache for 10, 10, 10 is " + cachedCalculate3.apply(10, 10, 10));
         System.out.println("calculate result by cache for 10, 10, 10 is " + cachedCalculate3.apply(10, 10, 10));
         System.out.println("calculate result by cache for 11, 11, 11 is " + cachedCalculate3.apply(11, 11, 11));
