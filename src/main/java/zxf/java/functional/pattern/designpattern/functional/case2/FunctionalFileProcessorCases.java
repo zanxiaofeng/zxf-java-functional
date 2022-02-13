@@ -10,15 +10,14 @@ public class FunctionalFileProcessorCases {
     }
 
     public static void use_case1() throws IOException {
+        System.out.println("use-case1: pdf-process");
         FunctionalFileProcessor functionalFileProcessor = new FunctionalFileProcessor();
-        functionalFileProcessor.process(
-                Paths.get("./files"), FunctionalFileProcessor.Handlers.pdf());
+        functionalFileProcessor.process(Paths.get("./files"), FunctionalFileProcessor.Handlers.pdf());
     }
 
     public static void use_case2() throws IOException {
+        System.out.println("\nuse-case1: word-process");
         FunctionalFileProcessor functionalFileProcessor = new FunctionalFileProcessor();
-        functionalFileProcessor.process(
-                Paths.get("./files"),
-                FunctionalFileProcessor.Handlers.pdf());
+        functionalFileProcessor.process(Paths.get("./files"), FunctionalFileProcessor.Handlers.word());
     }
 }
