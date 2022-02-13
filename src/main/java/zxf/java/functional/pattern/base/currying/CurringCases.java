@@ -4,16 +4,13 @@ import java.util.function.Function;
 
 public class CurringCases {
 
-
     public void use_case1(){
-        Function<Integer, Integer> add4 = Currying.currying(4, CurringCases::addBi);
+        Function<Integer, Integer> add4 = Currying.curryingFunction(4, CurringCases::addBi);
         add4.apply(5);
 
-        Function<Integer, Integer> add5 = Currying.currying(5, CurringCases::addBi);
+        Function<Integer, Integer> add5 = Currying.curryingFunction(5, CurringCases::addBi);
         add4.apply(5);
     }
-
-
 
     public static Integer addBi(Integer x, Integer y){
         return x + y;

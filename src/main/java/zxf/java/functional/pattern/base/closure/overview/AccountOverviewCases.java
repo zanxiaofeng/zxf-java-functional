@@ -6,7 +6,6 @@ import zxf.java.functional.pattern.base.currying.Currying;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 public class AccountOverviewCases {
@@ -39,14 +38,14 @@ public class AccountOverviewCases {
     //curring(closure)
     public static void case_functional_2() {
         AccountOverview overview = produce_accountOverview();
-        Predicate<String> accountChecker = Currying.currying(overview, (BiPredicate<? super AccountOverview, String>) AccountOverview::checkAccountNumber);
+        Predicate<String> accountChecker = Currying.curryingPredicate(overview, AccountOverview::checkAccountNumber);
         accountChecker.test("123456");
     }
 
     //curring(closure), compose
     public static void case_functional_3() {
         AccountOverview overview = produce_accountOverview();
-        Predicate<String> accountChecker = Currying.currying(overview, (BiPredicate<? super AccountOverview, String>) AccountOverview::checkAccountNumber);
+        Predicate<String> accountChecker = Currying.curryingPredicate(overview, AccountOverview::checkAccountNumber);
         Predicate<String> cachedAccountChecker = Caching.cachedPredicate(accountChecker);
         cachedAccountChecker.test("123456");
         cachedAccountChecker.test("123456");
