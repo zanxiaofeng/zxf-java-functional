@@ -1,27 +1,40 @@
 package zxf.java.functional.pattern.designpattern.functional.case2;
 
-import java.io.IOException;
-import java.nio.file.Files;
+import java.io.File;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class FunctionalFileProcessor {
-    public void process(Path folder, Handler handler) throws IOException {
-        Files.newDirectoryStream(folder).forEach(path -> {
-            if (handler.shouldHandle(path)) {
-                handler.handle(path);
+    public void process(Path folder, Handler handler) {
+        File[] files = folder.toFile().listFiles();
+        for (File file : files) {
+            if (file.isDirectory()) {
+                process(file.toPath(), handler);
+                continue;
             }
-        });
+            if (handler.shouldHandle(file.toPath())) {
+                handler.handle(file.toPath());
+            }
+        }
     }
 
     public interface Handler {
         boolean shouldHandle(Path file);
 
         void handle(Path file);
+
+        static Handler pdf() {
+            return new HandlerImpl(PDF::shouldHandle, PDF::handle);
+        }
+
+        static Handler word() {
+            return new HandlerImpl(Word::shouldHandle, Word::handle);
+        }
     }
 
-    public static class HandlerImpl implements Handler {
+    //Should be protected for unit test
+    private static class HandlerImpl implements Handler {
         private Predicate<Path> shouldHandle;
         private Consumer<Path> handler;
 
@@ -41,33 +54,25 @@ public class FunctionalFileProcessor {
         }
     }
 
-    public interface Handlers {
-        static Handler pdf() {
-            return new HandlerImpl(PDF::shouldHandle, PDF::handle);
-        }
-
-        static Handler word() {
-            return new HandlerImpl(Word::shouldHandle, Word::handle);
-        }
-    }
-
-    public static class PDF {
+    //Should be protected for unit test
+    private static class PDF {
         static boolean shouldHandle(Path file) {
             return file.getFileName().toString().endsWith(".pdf");
         }
 
         static void handle(Path file) {
-            System.out.println("Processing pdf file: " + file.getFileName());
+            System.out.println("Processing pdf file: " + file.toString());
         }
     }
 
-    public static class Word {
+    //Should be protected for unit test
+    private static class Word {
         public static boolean shouldHandle(Path file) {
             return file.getFileName().toString().endsWith(".docx");
         }
 
         public static void handle(Path file) {
-            System.out.println("Processing word file: " + file.getFileName());
+            System.out.println("Processing word file: " + file.toString());
         }
     }
 }
