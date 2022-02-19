@@ -12,7 +12,7 @@ public class AccountCases {
 
     //快捷方法测试
     public static void use_case1_1() {
-        System.out.println("use_case1_1 快捷方法测试");
+        System.out.println("快捷方法测试");
 
         System.out.println("MST:");
         accountStream().filter(Account::isMasterAccount).forEach(System.out::println);
@@ -35,7 +35,7 @@ public class AccountCases {
 
     //Lambda快捷常量测试
     public static void use_case1_２() {
-        System.out.println("use_case1_２ Lambda快捷常量测试");
+        System.out.println("Lambda快捷常量测试");
 
         System.out.println("MST:");
         accountStream().filter(Account.Predicates.IS_MASTER).forEach(System.out::println);
@@ -58,7 +58,7 @@ public class AccountCases {
 
     //基础方法测试
     public static void use_case2_1() {
-        System.out.println("use_case2_1 基础方法测试");
+        System.out.println("基础方法测试");
 
         System.out.println("OTH:");
         accountStream().filter(account -> account.isAccountOf("OTH")).forEach(System.out::println);
@@ -69,7 +69,7 @@ public class AccountCases {
 
     //Lambda支持方法测试
     public static void use_case2_2() {
-        System.out.println("use_case2_2 Lambda支持方法测试");
+        System.out.println("Lambda支持方法测试");
 
         System.out.println("OTH:");
         accountStream().filter(Account.Predicates.isAccountOfType("OTH")).forEach(System.out::println);
