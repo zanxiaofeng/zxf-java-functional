@@ -7,11 +7,18 @@
 
 # 函数式编程
 ### 函数
->- 函数作为类型
->- 函数作为函数入参（高阶函数，函数式多态）
->- 函数作为函数返回值（高阶函数）
+>- 函数作为类型和值
+>- 函数作为类型：变量类型，参数类型（高阶函数），返回值类型（高阶函数）
+>- 函数作为值：变量值，参数值（实参），返回值
 ### 不变量
 ### 元组
+
+
+# 函数式多态（Ｊava）
+>- 函数作为入参的多态
+>- 函数作为返回值的多态（不同情况返回不同函数）
+>- 函数作为类成员变量形成新的面向对象与函数式结合的新型多态（以组合而非继承的方式实现的面向对象多态）
+
 
 # Java８引入的函数式
 >- Functional Interface
@@ -32,19 +39,20 @@
 >|  Predicate<T>          |   T            |   Boolean  |      test        | 单个参数Ｔ上的布尔值函　　　　　　　	 |   and, or, nagate, isEqual, not |
 >|  BiPredicate<T,U>      |   T,U          |   Boolean  |      test        | 有两个参数T和Ｕ的布尔值函数　　　　　　|   and, or, nagate               |
 
-# Lambda
->- 标准写法
+
+# Java中函数值的形式
+>- 方法引用
+>>- Class::instanceMethod(类实例方法引用)
+>>- Class::staticMethod(类静态方法引用)
+>>- Class::new(类构造器引用)
+>>- object:instanceMethod(对象实例方法引用)
+>- 立即函数 - Lambda
+>>- 标准写法
 `(product)->{
 	return product.getId();
 }`
->- 单行写法
+>>- 单行写法
 `(product)->product.getId()`
->- 方法引用
->>- object:instanceMethod
->>- Class::instanceMethod
->>- Class::staticMethod
->- 构造器引用
->>- Class::new
 
 
 # Optional
