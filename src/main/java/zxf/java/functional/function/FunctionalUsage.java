@@ -10,10 +10,9 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 public class FunctionalUsage {
     public static void main(String[] args) {
-        //关于函数的Throws子句，没有Throws子句的函数可以赋值给有Ｔhrows子句的函数只要参数和返回类型匹配即可；
-        //有Ｔhrows子句的函数之间，要看Ｔhrows子句定义的Ｅxception之间的覆盖关系，
-        //如果Ａ函数签名定义的Ｔhrow　Ｅxceptions能覆盖Ｂ函数签名定义的Ｔhrow　Ｅxceptions，
-        //那么拥有Ｂ函数签名的函数值可以赋值给拥有Ａ函数签名类型的入参，返回值，变量
+        //一个函数值是否可以赋值给一个函数类型，首先要看函数值的参数类型、参数顺序、返回值类型是否与函数类型声明的形式兼容一致
+        //其次要看函数值声明的Exceptions(Throws子句)能否被函数类型声明的Exceptions(Throws子句)覆盖包含
+        //立即函数-Lambda没有Throws子句，因此不用考虑Exception的兼容性
         //BiConsumer<Path, String> fileLogger = FunctionalUsage::log;
     }
 
