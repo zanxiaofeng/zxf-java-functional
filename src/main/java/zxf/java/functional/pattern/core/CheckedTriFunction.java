@@ -1,0 +1,6 @@
+package zxf.java.functional.pattern.core;
+
+@FunctionalInterface
+public interface CheckedTriFunction<T, U, P, R> {
+    R apply(T t, U u, P p) throws Exception;
+}

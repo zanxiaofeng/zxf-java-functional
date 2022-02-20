@@ -1,6 +1,6 @@
 package zxf.java.functional.pattern.closure.cache;
 
-import zxf.java.functional.pattern.TriFunction;
+import zxf.java.functional.pattern.core.TriFunction;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;

@@ -1,7 +1,7 @@
 package zxf.java.functional.pattern.closure.cache;
 
-import zxf.java.functional.pattern.TriFunction;
-import zxf.java.functional.pattern.TriPredicate;
+import zxf.java.functional.pattern.core.TriFunction;
+import zxf.java.functional.pattern.core.TriPredicate;
 import zxf.java.functional.pattern.closure.cache.tree.Mapped2LTree;
 import zxf.java.functional.pattern.closure.cache.tree.Mapped3LTree;
 

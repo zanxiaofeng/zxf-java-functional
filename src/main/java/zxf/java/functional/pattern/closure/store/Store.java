@@ -1,6 +1,6 @@
 package zxf.java.functional.pattern.closure.store;
 
-import zxf.java.functional.pattern.TriFunction;
+import zxf.java.functional.pattern.core.TriFunction;
 
 import java.util.HashMap;
 import java.util.Map;
