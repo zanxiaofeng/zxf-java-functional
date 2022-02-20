@@ -1,4 +1,4 @@
-package zxf.java.functional.pattern.closure.cache.tree;
+package zxf.java.functional.core.tree;
 
 import java.util.Collections;
 import java.util.HashMap;

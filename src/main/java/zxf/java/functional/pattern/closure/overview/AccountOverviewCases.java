@@ -1,7 +1,8 @@
 package zxf.java.functional.pattern.closure.overview;
 
-import zxf.java.functional.pattern.closure.cache.Caching;
-import zxf.java.functional.pattern.currying.Currying;
+
+import zxf.java.functional.core.Caching;
+import zxf.java.functional.core.Currying;
 
 import java.util.ArrayList;
 import java.util.Collections;

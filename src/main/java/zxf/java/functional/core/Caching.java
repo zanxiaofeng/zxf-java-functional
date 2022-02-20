@@ -1,9 +1,9 @@
-package zxf.java.functional.pattern.closure.cache;
+package zxf.java.functional.core;
 
-import zxf.java.functional.pattern.core.TriFunction;
-import zxf.java.functional.pattern.core.TriPredicate;
-import zxf.java.functional.pattern.closure.cache.tree.Mapped2LTree;
-import zxf.java.functional.pattern.closure.cache.tree.Mapped3LTree;
+import zxf.java.functional.core.function.TriFunction;
+import zxf.java.functional.core.function.TriPredicate;
+import zxf.java.functional.core.tree.Mapped2LTree;
+import zxf.java.functional.core.tree.Mapped3LTree;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package zxf.java.functional.pattern.core;
+package zxf.java.functional.core.function;
 
 @FunctionalInterface
 public interface CheckedFunction<T, R> {

@@ -1,6 +1,6 @@
-package zxf.java.functional.pattern.currying;
+package zxf.java.functional.core;
 
-import zxf.java.functional.pattern.core.*;
+import zxf.java.functional.core.function.*;
 
 
 import java.util.function.*;

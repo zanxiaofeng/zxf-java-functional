@@ -1,4 +1,4 @@
-package zxf.java.functional.pattern.core;
+package zxf.java.functional.core.function;
 
 import java.util.Objects;
 import java.util.function.Function;
