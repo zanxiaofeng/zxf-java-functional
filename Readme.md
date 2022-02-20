@@ -57,7 +57,7 @@
 # Java函数式的特别
 >- 函数作为类的成用变量可以实现面向对象和函数式结合的新多态模式（组合而非继承式多态）
 >- 只有一个方法的接口（不包含Ｄefault方法）与函数可以相互转换，不仅便捷，而且命名接口使得函数式的使用在设计上更有意义（比如结合设计模式）
->- Throws Exceptions会导致函数契约不匹配，从而影响Ｊava中函数的相互转换，比如函数"public static void log(Path logFile, String message) throws Exception"不能转换成BiConsumer<Path, String>
+>- 关于函数的Throws子句，没有Throws子句的函数可以赋值给有Ｔhrows子句的函数只要参数和返回类型匹配即可，有Ｔhrows子句的函数之间，要看Ｔhrows子句定义的Ｅxception之间的覆盖关系，如果Ａ函数签名定义的Ｔhrow　Ｅxceptions能覆盖Ｂ函数签名定义的Ｔhrow　Ｅxceptions，那么拥有Ｂ函数签名的函数值可以赋值给拥有Ａ函数签名类型的入参，返回值，变量
 
 
 # Optional
