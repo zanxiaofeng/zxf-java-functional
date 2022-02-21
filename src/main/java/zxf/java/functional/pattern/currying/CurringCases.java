@@ -3,6 +3,8 @@ package zxf.java.functional.pattern.currying;
 import zxf.java.functional.core.Currying;
 import zxf.java.functional.core.function.CheckedFunction;
 
+import java.util.Optional;
+
 
 public class CurringCases {
     public static void main(String[] args) throws Exception {

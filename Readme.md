@@ -128,3 +128,14 @@
 ### 模板方法
 ### 策略模式
 ### 装饰器
+
+# 函数式数据(容器)处理模式
+### 泛型容器型数据
+>- 泛型集合类型，如List[T]
+>- 泛型不相交联合体，如Ｏptinal<T>(Some[T], None), Result<T,Err>(Success<T>, Failure<Err>)
+### 问题：函数式中如何处理此类数据
+>- 问题一：如何将普通函数（入参为普通类型，返回值可能为另一个普通类型）应用于包装类型，如将String toString(Integer value)应用于Ｏptional<Integer>,　就是函子Ｆunctor，如Ｏptional.map方法。
+>- 问题二：如何将返回包装类型的普通函数（入参为普通类型）应用与包装类型，如将Ｏptional<Integer> toInt(String value)于Ｏptional<String>, 就是单子Ｍonad，如Ｏptional.flatMap方法。
+>- 问题三：柯里化用来包装一个普通函数的一个或多个参数，并返回一个新的函数，如果将包装类型应用到这个参数返回结果将不再是函数而且被包装起来的函数。
+
+
