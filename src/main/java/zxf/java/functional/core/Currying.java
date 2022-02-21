@@ -93,15 +93,15 @@ public class Currying {
         }
     }
 
-    public static class BiCurryingFunction<T, U, R> {
-        private Function<T, CheckedFunction<U, R>> curried;
+    public static class BiCurryingFunction<T, U, R> implements Function<T, CheckedFunction<U, R>> {
+        private Optional<Function<T, CheckedFunction<U, R>>> optionalCurried;
 
         public BiCurryingFunction(Function<T, CheckedFunction<U, R>> curried) {
-            this.curried = curried;
+            this.curried = new Optional<>(curried);
         }
 
         public CheckedFunction<U, R> apply(T t) {
-            return curried.apply(t);
+            return optionalCurried.get().apply(t);
         }
 
         public Optional<CheckedFunction<U, R>> apply(Optional<T> t) {
