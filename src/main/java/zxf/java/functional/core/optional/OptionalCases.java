@@ -1,6 +1,7 @@
 package zxf.java.functional.core.optional;
 
 import zxf.java.functional.core.Currying;
+import zxf.java.functional.core.OptionalCurrying;
 import zxf.java.functional.core.function.CheckedFunction;
 
 import java.util.function.Function;
@@ -30,15 +31,23 @@ public class OptionalCases {
         Optional<String> optional2_new = optional2.flatMap(OptionalCases::toOptString);
     }
 
-    //Applicative
+    //Applicative--left
     public static void use_case3() throws Exception {
         Optional<Integer> optional1 = new Optional<>(999);
         Optional<Integer> optional2 = new Optional<>(10);
 
-        Currying.BiCurryingFunction<Integer, Integer, String> curriedTriFunction= Currying.Common.curryingFunction(OptionalCases::mulAndToString);
-        Optional<String> result = optional2.applyChecked(curriedTriFunction.apply(optional1));
+        Function<Integer, CheckedFunction<Integer, String>> curriedTriFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
+        Optional<String> result = optional2.applyChecked(optional1.apply(new Optional<>(curriedTriFunction)));
     }
 
+    //Applicative--right
+    public static void use_case4() throws Exception {
+        Optional<Integer> optional1 = new Optional<>(999);
+        Optional<Integer> optional2 = new Optional<>(10);
+
+        OptionalCurrying.BiCurryingFunction<Integer, Integer, String> curriedTriFunction = OptionalCurrying.curryingFunction(OptionalCases::mulAndToString);
+        Optional<String> result = curriedTriFunction.apply(optional1).apply(optional2);
+    }
 
     public static String toString(Integer value) {
         return value.toString();
@@ -54,5 +63,4 @@ public class OptionalCases {
     public static String mulAndToString(Integer a, Integer b) {
         return String.valueOf(a * b);
     }
-
 }
