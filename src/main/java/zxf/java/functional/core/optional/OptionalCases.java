@@ -35,9 +35,8 @@ public class OptionalCases {
         Optional<Integer> optional1 = new Optional<>(999);
         Optional<Integer> optional2 = new Optional<>(10);
 
-        Function<Integer, CheckedFunction<Integer, String>> curryFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
-        Optional<CheckedFunction<Integer, String>> newFunction = optional1.map(curryFunction);
-        Optional<String> result = optional2.applyChecked(newFunction);
+        Currying.BiCurryingFunction<Integer, Integer, String> curriedTriFunction= Currying.Common.curryingFunction(OptionalCases::mulAndToString);
+        Optional<String> result = optional2.applyChecked(curriedTriFunction.apply(optional1));
     }
 
 
