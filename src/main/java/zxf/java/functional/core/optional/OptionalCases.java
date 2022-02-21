@@ -11,6 +11,7 @@ public class OptionalCases {
         use_case1();
         use_case2();
         use_case3();
+        use_case4();
     }
 
     //Functor
@@ -38,6 +39,7 @@ public class OptionalCases {
 
         Function<Integer, CheckedFunction<Integer, String>> curriedTriFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
         Optional<String> result = optional2.applyChecked(optional1.apply(new Optional<>(curriedTriFunction)));
+        System.out.println(result.get());
     }
 
     //Applicative--right
@@ -47,6 +49,7 @@ public class OptionalCases {
 
         OptionalCurrying.BiCurryingFunction<Integer, Integer, String> curriedTriFunction = OptionalCurrying.curryingFunction(OptionalCases::mulAndToString);
         Optional<String> result = curriedTriFunction.apply(optional1).apply(optional2);
+        System.out.println(result.get());
     }
 
     public static String toString(Integer value) {
