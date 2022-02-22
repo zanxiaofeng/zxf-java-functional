@@ -9,6 +9,14 @@ import java.util.function.Function;
 public class List<T> {
     private ArrayList<T> contents;
 
+    public List(T... contents) {
+        Objects.requireNonNull(contents);
+        this.contents = new ArrayList<>();
+        for (T content : contents) {
+            this.contents.add(content);
+        }
+    }
+
     public List(ArrayList<T> contents) {
         Objects.requireNonNull(contents);
         this.contents = contents;
@@ -66,12 +74,12 @@ public class List<T> {
     }
 
     //Applicative
-    public <R> List<R> applyChecked(List<CheckedFunction<T, R>> applier) throws Exception {
-        Objects.checkIndex(0, this.contents.size());
-
-        ArrayList<R> result = new ArrayList<R>();
+    public <R> List<R> applyChecked(List<CheckedFunction<T, R>> appliers) throws Exception {
+        ArrayList<R> result = new ArrayList<>();
         for (int i = 0; i < this.contents.size(); i++) {
-            result.add(applier.getContents().get(i).apply(this.contents.get(i)));
+            for (CheckedFunction<T, R> applier : appliers.getContents()) {
+                result.add(applier.apply(this.contents.get(i)));
+            }
         }
         return new List<>(result);
     }
