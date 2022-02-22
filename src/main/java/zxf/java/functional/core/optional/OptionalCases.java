@@ -38,7 +38,7 @@ public class OptionalCases {
         Optional<Integer> optional2 = new Optional<>(10);
 
         Function<Integer, CheckedFunction<Integer, String>> curriedTriFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
-        Optional<String> result = optional2.applyChecked(optional1.apply(new Optional<>(curriedTriFunction)));
+        Optional<String> result = optional2.applyChecked(optional1.map(curriedTriFunction));
         System.out.println(result.get());
     }
 
