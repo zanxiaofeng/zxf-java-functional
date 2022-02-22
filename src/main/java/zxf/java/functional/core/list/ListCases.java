@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.function.Function;
 
 public class ListCases {
-    //Applicative--left
+    //Applicative--左结合，第一个参数用函子map，后面的参数用应用子apply
     public static void use_case3() throws Exception {
         List<Integer> list1 = new List<>(new ArrayList());
         List<Integer> list2 = new List<>(new ArrayList());

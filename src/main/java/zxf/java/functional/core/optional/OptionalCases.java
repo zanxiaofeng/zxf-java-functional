@@ -32,7 +32,7 @@ public class OptionalCases {
         Optional<String> optional2_new = optional2.flatMap(OptionalCases::toOptString);
     }
 
-    //Applicative--left
+    //Applicative--左结合，第一个参数用函子map，后面的参数用应用子apply
     public static void use_case3() throws Exception {
         Optional<Integer> optional1 = new Optional<>(999);
         Optional<Integer> optional2 = new Optional<>(10);
@@ -42,7 +42,7 @@ public class OptionalCases {
         System.out.println(result.get());
     }
 
-    //Applicative--right
+    //right
     public static void use_case4() throws Exception {
         Optional<Integer> optional1 = new Optional<>(999);
         Optional<Integer> optional2 = new Optional<>(10);
