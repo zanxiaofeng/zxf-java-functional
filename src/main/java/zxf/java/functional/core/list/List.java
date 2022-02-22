@@ -63,12 +63,12 @@ public class List<T> {
     }
 
     //Applicative
-    public <R> List<R> apply(List<Function<T, R>> applier) {
-        Objects.checkIndex(0, this.contents.size());
-
-        ArrayList<R> result = new ArrayList<R>();
+    public <R> List<R> apply(List<Function<T, R>> appliers) {
+        ArrayList<R> result = new ArrayList<>();
         for (int i = 0; i < this.contents.size(); i++) {
-            result.add(applier.getContents().get(i).apply(this.contents.get(i)));
+            for (Function<T, R> applier : appliers.getContents()) {
+                result.add(applier.apply(this.contents.get(i)));
+            }
         }
         return new List<>(result);
     }

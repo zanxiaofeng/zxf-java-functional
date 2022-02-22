@@ -56,11 +56,6 @@ public class OptionalCases {
         System.out.println(result.get());
     }
 
-    //optional-list
-    public static void use_case5() {
-
-    }
-
     public static String add10(Integer value) {
         return value.toString();
     }
