@@ -1,6 +1,7 @@
 package zxf.java.functional.core;
 
 import zxf.java.functional.core.function.*;
+import zxf.java.functional.core.function.checked.*;
 
 import java.util.function.*;
 

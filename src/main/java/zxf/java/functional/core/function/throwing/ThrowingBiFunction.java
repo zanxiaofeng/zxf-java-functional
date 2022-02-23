@@ -1,4 +1,4 @@
-package zxf.java.functional.core.function;
+package zxf.java.functional.core.function.throwing;
 
 import java.util.function.BiFunction;
 

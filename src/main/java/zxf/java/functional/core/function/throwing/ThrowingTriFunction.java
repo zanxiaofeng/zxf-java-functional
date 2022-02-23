@@ -1,11 +1,13 @@
-package zxf.java.functional.core.function;
+package zxf.java.functional.core.function.throwing;
+
+import zxf.java.functional.core.function.TriFunction;
 
 @FunctionalInterface
-public interface ThrowingTriConsumer<T, U, P> extends TriConsumer<T, U, P> {
+public interface ThrowingTriFunction<T, U, P, R> extends TriFunction<T, U, P, R> {
     @Override
-    default void accept(T t, U u, P p) {
+    default R apply(T t, U u, P p) {
         try {
-            acceptThrows(t, u, p);
+            return applyThrows(t, u, p);
         } catch (final Exception e) {
             // Implement your own exception handling logic here.
             // For example:
@@ -15,5 +17,5 @@ public interface ThrowingTriConsumer<T, U, P> extends TriConsumer<T, U, P> {
         }
     }
 
-    void acceptThrows(T t, U u, P p) throws Exception;
+    R applyThrows(T t, U u, P p) throws Exception;
 }

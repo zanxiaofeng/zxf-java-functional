@@ -1,7 +1,7 @@
 package zxf.java.functional.core.list;
 
 import zxf.java.functional.core.Currying;
-import zxf.java.functional.core.function.CheckedFunction;
+import zxf.java.functional.core.function.checked.CheckedFunction;
 
 import java.util.function.Function;
 

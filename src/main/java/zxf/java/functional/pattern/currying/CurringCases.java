@@ -1,9 +1,7 @@
 package zxf.java.functional.pattern.currying;
 
 import zxf.java.functional.core.Currying;
-import zxf.java.functional.core.function.CheckedFunction;
-
-import java.util.Optional;
+import zxf.java.functional.core.function.checked.CheckedFunction;
 
 
 public class CurringCases {

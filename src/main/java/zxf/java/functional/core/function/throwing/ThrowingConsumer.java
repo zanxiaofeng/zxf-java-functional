@@ -1,13 +1,13 @@
-package zxf.java.functional.core.function;
+package zxf.java.functional.core.function.throwing;
 
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 @FunctionalInterface
-public interface ThrowingFunction<T, R> extends Function<T, R> {
+public interface ThrowingConsumer<T> extends Consumer<T> {
     @Override
-    default R apply(T t) {
+    default void accept(T t) {
         try {
-            return applyThrows(t);
+            acceptThrows(t);
         } catch (final Exception e) {
             // Implement your own exception handling logic here.
             // For example:
@@ -17,5 +17,5 @@ public interface ThrowingFunction<T, R> extends Function<T, R> {
         }
     }
 
-    R applyThrows(T t) throws Exception;
+    void acceptThrows(T t) throws Exception;
 }
