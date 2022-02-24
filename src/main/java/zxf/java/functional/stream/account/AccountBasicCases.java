@@ -1,12 +1,42 @@
 package zxf.java.functional.stream.account;
 
-
 import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
 
 public class AccountBasicCases {
+    public static void main(String[] args) {
+        System.out.println("static_use_case");
+        static_use_case(AccountFactory.mstAccount());
+        static_use_case(AccountFactory.othAccount());
+
+        System.out.println("static_basic_method_use_case");
+        static_basic_method_use_case(AccountFactory.mstAccount());
+        static_basic_method_use_case(AccountFactory.othAccount());
+
+        System.out.println("static_convenience_method_use_case");
+        static_convenience_method_use_case(AccountFactory.mstAccount());
+        static_convenience_method_use_case(AccountFactory.othAccount());
+
+        System.out.println("static_basic_predicate_use_case");
+        static_basic_predicate_use_case(AccountFactory.mstAccount());
+        static_basic_predicate_use_case(AccountFactory.othAccount());
+
+        System.out.println("static_constant_predicate_use_case");
+        static_constant_predicate_use_case(AccountFactory.mstAccount());
+        static_constant_predicate_use_case(AccountFactory.othAccount());
+
+        System.out.println("dynamic_use_case");
+        dynamic_use_case(AccountFactory.mstAccount(), "MST", "SLV");
+        dynamic_use_case(AccountFactory.othAccount(), "MST", "SLV");
+
+        System.out.println("dynamic_basic_method_use_case");
+        dynamic_basic_method_use_case(AccountFactory.mstAccount(), "MST", "SLV");
+        dynamic_basic_method_use_case(AccountFactory.othAccount(), "MST", "SLV");
+
+        System.out.println("dynamic_basic_predicate_use_case");
+        dynamic_basic_predicate_use_case(AccountFactory.mstAccount(), "MST", "SLV");
+        dynamic_basic_predicate_use_case(AccountFactory.othAccount(), "MST", "SLV");
+    }
+
     private static void static_use_case(Account account) {
         if ("MST".equals(account.getAccountType())) {
             System.out.println("do some thing for MST type");

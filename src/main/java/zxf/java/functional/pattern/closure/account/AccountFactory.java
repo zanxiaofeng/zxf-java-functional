@@ -8,6 +8,6 @@ public class AccountFactory {
                 new Account("MST", "551002"),
                 new Account("SLV", "331001"),
                 new Account("SLV", "331001"),
-                new Account("MST", "111001"));
+                new Account("OTH", "111001"));
     }
 }
