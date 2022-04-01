@@ -1,6 +1,7 @@
 package zxf.java.functional.stream;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -14,12 +15,12 @@ public class StreamUsageCases {
             "of", "and", "in", "or", "on", "by", "it", "as", "s", "any");
     private static Pattern splitter = Pattern.compile("[\\s,.;:\\)\\(’]+");
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, URISyntaxException {
         use_case1();
     }
 
-    public static void use_case1() throws IOException {
-        String fileContent = Files.readString(Paths.get("./files/article.txt"));
+    public static void use_case1() throws IOException, URISyntaxException {
+        String fileContent = Files.readString(Paths.get(StreamCreationCases.class.getResource("/files/article.txt").toURI()));
         Map<String, Integer> wordCount = splitter.splitAsStream(fileContent)
                 .map(String::toLowerCase)
                 .filter(Predicate.not(String::isBlank))
