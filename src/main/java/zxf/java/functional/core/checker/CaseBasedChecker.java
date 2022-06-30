@@ -1,21 +1,21 @@
-package zxf.java.functional.function.check.core;
+package zxf.java.functional.core.checker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class PredicateBasedChecker<T> {
-    private final CheckRule<T>[] checkRules;
+public class CaseBasedChecker<T> {
+    private final CaseRule<T>[] checkRules;
 
-    protected PredicateBasedChecker(CheckRule<T>... checkRules) {
+    protected CaseBasedChecker(CaseRule<T>... checkRules) {
         this.checkRules = checkRules;
     }
 
     public String singleCheck(T checkObject) {
         for (int i = 0; i < checkRules.length; i++) {
             if (Arrays.stream(checkRules[i].getChecks()).allMatch(check -> check.test(checkObject))) {
-                return checkRules[i].result;
+                return checkRules[i].getCaseId();
             }
         }
         return null;
@@ -25,23 +25,23 @@ public class PredicateBasedChecker<T> {
         List<String> result = new ArrayList<>();
         for (int i = 0; i < checkRules.length; i++) {
             if (Arrays.stream(checkRules[i].getChecks()).allMatch(check -> check.test(checkObject))) {
-                result.add(checkRules[i].result);
+                result.add(checkRules[i].getCaseId());
             }
         }
         return result;
     }
 
-    public static class CheckRule<T> {
-        private String result;
-        private Predicate<T>[] checks;
+    public static class CaseRule<T> {
+        private final String caseId;
+        private final Predicate<T>[] checks;
 
-        public CheckRule(String result, Predicate<T>... checks) {
-            this.result = result;
+        public CaseRule(String caseId, Predicate<T>... checks) {
+            this.caseId = caseId;
             this.checks = checks;
         }
 
-        public String getResult() {
-            return result;
+        public String getCaseId() {
+            return caseId;
         }
 
         public Predicate<T>[] getChecks() {

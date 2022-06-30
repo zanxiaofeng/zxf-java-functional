@@ -2,7 +2,7 @@ package zxf.java.functional.function.check.product.model;
 
 public class Product {
     private String id = "1";
-    private String name = "";
+    private String name;
     private String email;
 
     public String getId() {
@@ -27,5 +27,9 @@ public class Product {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public boolean isIdNull() {
+        return id == null;
     }
 }

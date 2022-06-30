@@ -1,4 +1,6 @@
-package zxf.java.functional.function.check.product.model;
+package zxf.java.functional.function.check.product.cased;
+
+import zxf.java.functional.function.check.product.model.Product;
 
 public class ProductUpdateInput {
     private final Product preProduct;
