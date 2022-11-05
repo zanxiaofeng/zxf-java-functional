@@ -20,6 +20,7 @@ public class StreamUsageCases {
     }
 
     public static void use_case1() throws IOException, URISyntaxException {
+        // Please note "Files.readString(Paths.get(StreamCreationCases.class.getResource("/files/article.txt").toURI()))" will fail when run this program by jar
         String fileContent = Files.readString(Paths.get(StreamCreationCases.class.getResource("/files/article.txt").toURI()));
         Map<String, Integer> wordCount = splitter.splitAsStream(fileContent)
                 .map(String::toLowerCase)
