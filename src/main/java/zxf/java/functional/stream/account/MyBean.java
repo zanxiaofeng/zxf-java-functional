@@ -32,6 +32,7 @@ public class MyBean {
 
 
     public static Comparator<MyBean> myBeanComparator() {
-        return Comparator.comparing(MyBean::typeOrder).thenComparing(MyBean::getNumber);
+        // number can not be null
+        return Comparator.comparingInt(MyBean::typeOrder).thenComparing(MyBean::getNumber, String.CASE_INSENSITIVE_ORDER);
     }
 }
