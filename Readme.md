@@ -138,10 +138,10 @@
 ### 装饰器
 
 # 函数式数据(容器)处理模式
-### 封装类型（泛型容器型数据）
+### 包装类型（泛型容器型数据）
 >- 泛型集合类型，如List[T]
 >- 泛型不相交联合体，如Ｏptinal<T>(Some[T], None), Result<T,Err>(Success<T>, Failure<Err>)
-### 问题：函数式如何将各类函数应用于此分装类型
+### 问题：函数式如何将各类函数应用于此包装类型
 >- 问题一（普通函数）：如何将普通函数应用于包装类型，这就是函子Functor，如Optional.map方法；如将String toString(Integer value)应用于Optional<Integer>。
 >- 问题二（返回包装类型的普通函数）：如何将返回包装类型的普通函数应用于包装类型，这就是单子Monad，如Optional.flatMap方法；如将Optional<Integer> toInt(String value)应用于Optional<String>。
 >- 问题三（函数包装类型）：如何将函数包装类型中包装的函数应用于应用于另一包装类型，这就是应用子Applicative。
