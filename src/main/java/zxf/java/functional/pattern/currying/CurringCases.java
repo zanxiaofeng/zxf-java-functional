@@ -1,6 +1,7 @@
 package zxf.java.functional.pattern.currying;
 
 import zxf.java.functional.core.Currying;
+import zxf.java.functional.core.Partial;
 import zxf.java.functional.core.function.checked.CheckedFunction;
 
 
@@ -10,10 +11,10 @@ public class CurringCases {
     }
 
     public static void use_case1() throws Exception {
-        CheckedFunction<Integer, Integer> add4 = Currying.curryingFunction(4, CurringCases::addBi);
+        CheckedFunction<Integer, Integer> add4 = Partial.partialFunction(4, CurringCases::addBi);
         add4.apply(5);
 
-        CheckedFunction<Integer, Integer> add5 = Currying.curryingFunction(5, CurringCases::addBi);
+        CheckedFunction<Integer, Integer> add5 = Partial.partialFunction(5, CurringCases::addBi);
         add4.apply(5);
     }
 
