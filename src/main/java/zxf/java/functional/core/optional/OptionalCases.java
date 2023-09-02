@@ -38,7 +38,7 @@ public class OptionalCases {
         System.out.println(optionalNullAdd100.get());
     }
 
-    //Applicative--左结合，第一个参数用函子map，后面的参数用应用子apply
+    //Applicative--左结合，Val->Func->*Func by apply val*->Val, 第一个参数用函子map，后面的参数用应用子apply
     public static void use_case3() throws Exception {
         System.out.println("use_case3");
         Function<Integer, CheckedFunction<Integer, String>> curriedTriFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
@@ -49,7 +49,7 @@ public class OptionalCases {
         System.out.println(result.get());
     }
 
-    //right
+    //右结合, Func->*Func by apply val*->Val
     public static void use_case4() throws Exception {
         System.out.println("use_case4");
         OptionalCurrying.BiCurryingFunction<Integer, Integer, String> curriedTriFunction = OptionalCurrying.curryingFunction(OptionalCases::mulAndToString);
