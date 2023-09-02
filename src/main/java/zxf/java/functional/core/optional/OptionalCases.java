@@ -41,22 +41,22 @@ public class OptionalCases {
     //Applicative--左结合，Val->Func->*Func by apply val*->Val, 第一个参数用函子map，后面的参数用应用子apply
     public static void use_case3() throws Exception {
         System.out.println("use_case3");
-        Function<Integer, CheckedFunction<Integer, String>> curriedTriFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
+        Function<Integer, CheckedFunction<Integer, String>> curriedBiFunction = Currying.curryingFunction(OptionalCases::mulAndToString);
 
         Optional<Integer> optional10 = new Optional<>(10);
         Optional<Integer> optional999 = new Optional<>(999);
-        Optional<String> result = optional999.applyChecked(optional10.map(curriedTriFunction));
+        Optional<String> result = optional999.applyChecked(optional10.map(curriedBiFunction));
         System.out.println(result.get());
     }
 
-    //右结合, Func->*Func by apply val*->Val
+    //右结合, *Func by apply val*->Val
     public static void use_case4() throws Exception {
         System.out.println("use_case4");
-        OptionalCurrying.BiCurryingFunction<Integer, Integer, String> curriedTriFunction = OptionalCurrying.curryingFunction(OptionalCases::mulAndToString);
+        OptionalCurrying.BiCurryingFunction<Integer, Integer, String> curriedBiFunction = OptionalCurrying.curryingFunction(OptionalCases::mulAndToString);
 
         Optional<Integer> optional10 = new Optional<>(10);
         Optional<Integer> optional999 = new Optional<>(999);
-        Optional<String> result = curriedTriFunction.apply(optional10).apply(optional999);
+        Optional<String> result = curriedBiFunction.apply(optional10).apply(optional999);
         System.out.println(result.get());
     }
 
