@@ -144,7 +144,7 @@
 ### 问题：函数式如何将各类函数应用于此包装类型
 >- 问题一（普通函数）：如何将普通函数应用于包装类型，这就是函子Functor，如Optional.map方法；如将String toString(Integer value)应用于Optional<Integer>。
 >- 问题二（返回包装类型的普通函数）：如何将返回包装类型的普通函数应用于包装类型，这就是单子Monad，如Optional.flatMap方法；如将Optional<Integer> toInt(String value)应用于Optional<String>。
->- 问题三（函数包装类型）：如何将函数包装类型中包装的函数应用于应用于另一包装类型，这就是应用子Applicative，方法名通常是apply。
+>- 问题三（函数包装类型）：如何将函数包装类型中包装的函数应用于应用于另一包装类型，这就是应用子Applicative，方法名通常是apply；比如List<Val> * Optional<Func> 或　Optional<Val> * List<Func>。
 >- 问题四（如何创建函数包装类型）：可以直接用函数构造一个函数包装类型，也可以通过函子操作将一个返回函数的函数应用于普通包装类型，从而将其转换成函数包装类型，返回函数的函数可以自定义也可以是Curry或Partial。
 ### 范型容器类型的使用模式
 >- `像Ｓtream<T>, Optional<T>, Flux<T>, Mono<T>这类函数式范型容器类型，其使用模式基本是：１. 容器类型实例的创建－从其他类型T的实例或Ｓupplier<T>实例化出容器类型；２.利用函数式操作对Ｔ进行各种过滤转换，使被包装类型由Ｔ...Ｒ（可以进行多次转换）（Ｐredicate<M1>，Ｆunction<M1,M2>）；３.终止操作－消费Ｒ类型数据（Ｃonsumer<R>）`
