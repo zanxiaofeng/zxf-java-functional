@@ -39,14 +39,14 @@ public class AccountOverviewCases {
     //curring(closure)
     public static void case_functional_2() {
         AccountOverview overview = produce_accountOverview();
-        Predicate<String> accountChecker = Currying.curryingPredicate(overview, AccountOverview::checkAccountNumber);
+        Predicate<String> accountChecker = Currying.curryingPredicate(AccountOverview::checkAccountNumber).apply(overview);
         accountChecker.test("123456");
     }
 
     //curring(closure), compose
     public static void case_functional_3() {
         AccountOverview overview = produce_accountOverview();
-        Predicate<String> accountChecker = Currying.curryingPredicate(overview, AccountOverview::checkAccountNumber);
+        Predicate<String> accountChecker = Currying.curryingPredicate(AccountOverview::checkAccountNumber).apply(overview);
         Predicate<String> cachedAccountChecker = Caching.cachedPredicate(accountChecker);
         cachedAccountChecker.test("123456");
         cachedAccountChecker.test("123456");

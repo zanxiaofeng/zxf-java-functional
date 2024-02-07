@@ -8,11 +8,8 @@ import java.util.Map;
 public class Store {
     public static <T, U> TriFunction<String, T, U, U> store() {
         Map<T, U> store = new HashMap<>();
-        PutCommand putCommand = new PutCommand(store);
-        GetCommand getCommand = new GetCommand(store);
         return (action, t, u) -> {
             if (action.equalsIgnoreCase("get")) {
-
                 return store.getOrDefault(t, u);
             }
             return store.put(t, u);
