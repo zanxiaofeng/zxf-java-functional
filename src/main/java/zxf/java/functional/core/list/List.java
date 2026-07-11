@@ -17,9 +17,14 @@ public class List<T> {
         }
     }
 
+    /**
+     * 用已有 {@link ArrayList} 构造 List。
+     * 做防御性拷贝，避免外部后续修改传入集合导致内部状态被意外变更
+     * （符合不可变/隔离原则）。
+     */
     public List(ArrayList<T> contents) {
         Objects.requireNonNull(contents);
-        this.contents = contents;
+        this.contents = new ArrayList<>(contents);
     }
 
     public ArrayList<T> getContents() {

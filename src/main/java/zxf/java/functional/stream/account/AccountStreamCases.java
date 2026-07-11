@@ -153,7 +153,7 @@ public class AccountStreamCases {
                 .collect(Collectors.toList());
         System.out.println("MST or SLV");
         List<Account> selectedAccounts = AccountFactory.accountStream()
-                .filter(account -> !account.isAccountOfAny(accountTypes))
+                .filter(account -> account.isAccountOfAny(accountTypes))
                 .peek(System.out::println)
                 .collect(Collectors.toList());
     }

@@ -68,7 +68,7 @@ public class Caching {
         return cachedPredicate(cache, realPredicate);
     }
 
-    public static <T, R> Predicate<T> cachedPredicate(Map<T, Boolean> cache, Predicate<T> realPredicate) {
+    public static <T> Predicate<T> cachedPredicate(Map<T, Boolean> cache, Predicate<T> realPredicate) {
         return (t) -> {
             if (cache.containsKey(t)) {
                 return cache.get(t);

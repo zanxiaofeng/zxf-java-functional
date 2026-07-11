@@ -1,7 +1,7 @@
 package zxf.java.functional.function.check.product.model;
 
 public class Product {
-    private String id = "1";
+    private String id;
     private String name;
     private String email;
 

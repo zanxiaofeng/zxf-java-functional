@@ -13,8 +13,15 @@ public class ProductIdNullSimpleChecker extends SimpleChecker<Product> {
     }
 
     public static void main(String[] args) {
-        ProductIdNullSimpleChecker productIdNullSimpleChecker = ProductIdNullSimpleChecker.with(new Product());
-        productIdNullSimpleChecker.ifTrueOrFalse(p-> System.out.println("true"),
-                p-> System.out.println("false"));
+        // 分别构造 id=null 与 id="1" 两个 Product，演示 true/false 两个分支
+        Product idNull = new Product();              // id 默认 null -> 命中 isIdNull，走 true 分支
+        Product idPresent = new Product();
+        idPresent.setId("1");                        // id 非 null -> 走 false 分支
+        ProductIdNullSimpleChecker.with(idNull).ifTrueOrFalse(
+                p -> System.out.println("true: id 为 null"),
+                p -> System.out.println("false: id 非空"));
+        ProductIdNullSimpleChecker.with(idPresent).ifTrueOrFalse(
+                p -> System.out.println("true: id 为 null"),
+                p -> System.out.println("false: id 非空"));
     }
 }
