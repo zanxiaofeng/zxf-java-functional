@@ -10,9 +10,10 @@ import java.util.Optional;
 /**
  * Optional 与 JSON 序列化/反序列化的交互演示。
  *
- * <p>Jackson 注册 {@link Jdk8Module} 后能把 Optional 字段正确序列化为
- * 原始值或缺失字段；但反序列化「缺失字段」时拿到的是 null 而非 Optional.empty()，
- * 揭示了 Optional 作字段的争议性。</p>
+ * <p>Jackson 注册 {@link Jdk8Module} 后能把 Optional 字段序列化为原始值；
+ * 默认配置下 Optional.empty() 序列化为<b>显式 null 值</b>（字段不缺失，
+ * 除非配置 JsonInclude.Include.NON_NULL）；而反序列化「缺失字段」时拿到的是
+ * null 而非 Optional.empty()，揭示了 Optional 作字段的争议性。</p>
  */
 public class OptionalJsonCases {
     public static void main(String[] args) throws IOException {
@@ -42,21 +43,22 @@ public class OptionalJsonCases {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new Jdk8Module());
 
-        // 情形 A：setSubTitle(Optional.empty()) —— Jdk8Module 把 empty 序列化为「字段缺失」
+        // 情形 A：setSubTitle(Optional.empty()) —— 默认配置下 Jdk8Module 把 empty 序列化为显式 null 值
         Book bookEmpty = new Book();
         bookEmpty.setTitle("Book A");
         bookEmpty.setSubTitle(Optional.empty());
         String jsonEmpty = mapper.writeValueAsString(bookEmpty);
         System.out.println("  setSubTitle(Optional.empty()) JSON = " + jsonEmpty);
 
-        // 情形 B：setSubTitle(null) —— 字段本身为 null，同样缺失
+        // 情形 B：setSubTitle(null) —— 字段本身为 null，同样序列化为显式 null
         Book bookNull = new Book();
         bookNull.setTitle("Book B");
         bookNull.setSubTitle(null);
         String jsonNull = mapper.writeValueAsString(bookNull);
         System.out.println("  setSubTitle(null)            JSON = " + jsonNull);
 
-        System.out.println("  结论: 序列化层面 empty 与 null 输出一致（都为缺失字段）");
+        System.out.println("  结论: 默认配置下 empty 与 null 序列化输出一致（都是显式 null，字段不缺失）；");
+        System.out.println("        要让空值字段真正从 JSON 省略，需 mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)");
     }
 
     // 反序列化后的状态：空字段反序列化可能是 null 而非 empty（Optional 作字段的争议性）

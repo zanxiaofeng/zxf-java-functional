@@ -44,6 +44,10 @@ public class StreamReduceCases {
         // 场景：把 Integer 流归约成 StringBuilder，并统计字符总长度
         // accumulator：把每个数字追加到 StringBuilder
         // combiner：并行场景下合并两个 StringBuilder
+        // ⚠️ 注意：此处 accumulator 直接修改共享的可变 identity，仅限串行安全——
+        // 并行流下多个子任务会并发改同一个 StringBuilder（数据竞争）。
+        // 对可变容器的归约，请优先用 collect(Supplier, BiConsumer, BiConsumer)，
+        // 让每个子任务持有独立容器（见 StreamUsageCases 的词频统计）。
         StringBuilder result = Stream.of(1, 22, 333)
                 .reduce(
                         new StringBuilder(),

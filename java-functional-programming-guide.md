@@ -149,7 +149,7 @@ UnaryOperator<T>   // T -> T，一元操作符
 BinaryOperator<T>  // (T, T) -> T，二元操作符
 ```
 
-这些接口的设计遵循了**柯里化（Currying）**和**部分应用（Partial Application）**的函数式思想。`Function` 接口的 `andThen` 和 `compose` 方法支持函数组合，这是函数式编程的核心操作：
+这些接口以固定元数（一元/二元）和原始类型特化来组织。`Function` 接口的 `andThen` 和 `compose` 方法支持函数组合，这是函数式编程的核心操作：
 
 ```java
 Function<String, String> trim = String::trim;
@@ -268,11 +268,11 @@ Sink sink2 = mapOp.wrapSink(sink3);
 Sink sink1 = statusFilterOp.wrapSink(sink2);
 
 // 数据源将元素推入融合管道
+sink1.begin(orders.size());      // 整轮遍历只调用一次
 for (Order order : orders) {
-    sink1.begin(orders.size());
     sink1.accept(order);  // 元素流过所有阶段
-    sink1.end();
 }
+sink1.end();                     // 整轮遍历只调用一次；有状态 Sink（如 sorted/distinct）在此刻才真正 flush/排序
 ```
 
 ### 4.3 惰性求值与短路操作
@@ -869,8 +869,8 @@ try {
 ```java
 // sorted() 需要缓冲所有元素，大数据集时考虑外部排序
 List<Order> sorted = orders.stream()
-    .sorted(Comparator.comparing(Order::getCreateTime).reversed())  // O(n log n) 空间换时间
-    .limit(100)  // 如果 sorted 后紧跟 limit，Stream 会优化为部分排序
+    .sorted(Comparator.comparing(Order::getCreateTime).reversed())  // 全量排序：缓冲 O(n) 空间，排序 O(n log n) 时间
+    .limit(100)  // 注意：JDK 不会对 sorted+limit 做 top-N 优化，排序完成后 limit 才截断；只要前 N 个应考虑 PriorityQueue
     .toList();
 ```
 
@@ -882,10 +882,10 @@ List<Order> sorted = orders.stream()
 2. Stream 操作中的中间处理
 3. 事件监听器的注册
 
-但在需要访问 `this` 关键字指代外围类实例时，匿名内部类可能更清晰：
+但当回调逻辑需要以匿名类实例自身作为 `this`（例如把自身再注册到其他监听器、或需要显式区分内外层 `this`）时，匿名内部类反而更合适：
 
 ```java
-// 匿名内部类：this 指代外围类
+// 匿名内部类：this 指代匿名类实例自身，外围类实例需显式限定为 OrderProcessingService.this
 button.addActionListener(new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -893,7 +893,7 @@ button.addActionListener(new ActionListener() {
     }
 });
 
-// Lambda：this 仍指代外围类，但语法上不直观
+// Lambda：this 直接指代外围类实例，无需（也无法）显式限定
 button.addActionListener(e -> processOrder(orderId));
 ```
 
@@ -1005,7 +1005,7 @@ public Response handleRequest(Request request) {
 4. **设计模式的函数式重构**：策略、模板方法、职责链等模式通过函数组合实现更灵活的解耦
 5. **性能意识**：原始类型流避免装箱、并行流的 NQ 决策模型、有状态操作的成本
 
-随着 Java 25 Stream Gatherers API 的推出，函数式编程在 Java 生态中的地位将进一步巩固。对于企业级 Java 开发者而言，深入掌握 FP 与 OOP 的融合技术，已不再是可选项，而是构建高质量、可维护系统的核心能力。
+随着 Java 24 Stream Gatherers API 的推出，函数式编程在 Java 生态中的地位将进一步巩固。对于企业级 Java 开发者而言，深入掌握 FP 与 OOP 的融合技术，已不再是可选项，而是构建高质量、可维护系统的核心能力。
 
 ---
 

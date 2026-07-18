@@ -10,13 +10,14 @@ import java.util.function.Predicate;
 /**
  * 自实现的惰性 Stream，对应 Readme 中「流式 API / 责任链 + 终端操作」概念。
  *
- * <p>构造期只组装 {@link Processor} 责任链（filter/map/flatMap 都返回新的 Stream
- * 或追加处理器），不真正计算；直到调用终端操作（collect / reduce / count /
- * forEach）才沿责任链拉取数据。</p>
+ * <p>构造期只组装 {@link Processor} 责任链（filter/map/flatMap 每次都包装一层
+ * Processor 并返回<b>新的</b> Stream，与 JDK Stream 中间操作语义一致——原流不受影响，
+ * 可以从同一源头开出多个独立分支），不真正计算；直到调用终端操作（collect /
+ * reduce / count / forEach）才沿责任链拉取数据。</p>
  */
 public class Stream<T> {
     /** 流水线最末端（最后包装）的处理器，终端操作从这里拉取元素。 */
-    private Processor<?, T> finalProcessor;
+    private final Processor<?, T> finalProcessor;
 
     public Stream(Processor<?, T> initialProcessor) {
         this.finalProcessor = initialProcessor;
@@ -31,8 +32,7 @@ public class Stream<T> {
     }
 
     public Stream<T> filter(Predicate<T> predicate) {
-        this.finalProcessor = new FilterProcessor(this.finalProcessor, predicate);
-        return this;
+        return new Stream<>(new FilterProcessor<>(this.finalProcessor, predicate));
     }
 
     public <R> Stream<R> map(Function<T, R> mapper) {

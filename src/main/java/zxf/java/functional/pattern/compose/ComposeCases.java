@@ -30,7 +30,9 @@ public class ComposeCases {
 
     // use_case2: 半动态组合 —— Predicate and/or 组合多个条件
     public static void use_case2() {
-        System.out.println("\n#case 2: 半动态组合（Predicate and/or 组合多条件：偶数 且 (3的倍数 或 ==10)）");
+        System.out.println("\n#case 2: 半动态组合（Predicate and/or 组合多条件：(偶数 且 3的倍数) 或 ==10）");
+        // 注意结合顺序：and/or 从左到右依次结合，c1.and(c2).or(c3) 等价于 (c1 且 c2) 或 c3，
+        // 而非 c1 且 (c2 或 c3)。想要后者需显式写成 c1.and(c2.or(c3))。
         Predicate<Integer> newFilter =
                 ((Predicate<Integer>) ComposeCases::condition1)
                         .and(ComposeCases::condition2)

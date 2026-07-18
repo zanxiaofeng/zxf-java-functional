@@ -54,7 +54,7 @@ public class FunctionalInterfaceCases {
         combined.accept("count", 10);
     }
 
-    // Function<T,R>：T -> R。默认方法 andThen / compose / identity。
+    // Function<T,R>：T -> R。默认方法 andThen / compose；静态方法 identity。
     public static void use_case4_Function() {
         System.out.println("use_case4 Function：默认方法 andThen / compose");
         Function<String, Integer> toLen = String::length;
@@ -75,7 +75,7 @@ public class FunctionalInterfaceCases {
         System.out.println("  concat.andThen(String::length).apply(\"a\", 123) = " + thenLen.apply("a", 123));
     }
 
-    // UnaryOperator<T>：T -> T（Function 的特化）。继承 Function 的 andThen / compose / identity。
+    // UnaryOperator<T>：T -> T（Function 的特化）。继承 Function 的默认方法 andThen / compose；自身声明静态方法 identity。
     public static void use_case6_UnaryOperator() {
         System.out.println("use_case6 UnaryOperator：x -> x + 1，默认方法 andThen");
         UnaryOperator<Integer> inc = x -> x + 1;
@@ -96,7 +96,7 @@ public class FunctionalInterfaceCases {
         System.out.println("  minBy.apply(2,3) = " + min.apply(2, 3));
     }
 
-    // Predicate<T>：T -> boolean。默认方法 and / or / negate / isEqual。
+    // Predicate<T>：T -> boolean。默认方法 and / or / negate；静态方法 isEqual / not。
     public static void use_case8_Predicate() {
         System.out.println("use_case8 Predicate：默认方法 and / or / negate");
         Predicate<Integer> even = x -> x % 2 == 0;

@@ -9,6 +9,7 @@ public class AccountOverview {
     public static Boolean checkAccountNumber(AccountOverview overview, String accountNumber) {
         return overview.groups.stream()
                 .flatMap(group -> group.getAccounts().stream())
+                .map(Account::getNumber)
                 .anyMatch(Predicate.isEqual(accountNumber));
     }
 
@@ -27,6 +28,7 @@ public class AccountOverview {
     public Boolean checkAccount(String accountNumber) {
         return this.groups.stream()
                 .flatMap(group -> group.getAccounts().stream())
+                .map(Account::getNumber)
                 .anyMatch(Predicate.isEqual(accountNumber));
     }
 

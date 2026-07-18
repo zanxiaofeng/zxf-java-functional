@@ -30,7 +30,8 @@ public class StreamCollectCases {
         return AccountFactory.accountStream().toList();
     }
 
-    // toList：收集为不可变 List
+    // toList：收集为 List（不保证实现类型与可变性，当前实现返回可变的 ArrayList；
+    // 需要不可变 List 请用 Stream.toList() 或 Collectors.toUnmodifiableList()）
     public static void use_case1_to_list() {
         System.out.println("=== use_case1: Collectors.toList 收集为 List ===");
         List<String> types = accounts().stream()

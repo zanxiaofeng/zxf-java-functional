@@ -27,8 +27,12 @@ public class List<T> {
         this.contents = new ArrayList<>(contents);
     }
 
-    public ArrayList<T> getContents() {
-        return contents;
+    /**
+     * 返回内容的不可变拷贝（{@code List.copyOf}，拒绝 null 元素），
+     * 防止外部通过返回值修改内部状态——与构造器的防御性拷贝共同保证不可变/隔离。
+     */
+    public java.util.List<T> getContents() {
+        return java.util.List.copyOf(contents);
     }
 
     //Functor

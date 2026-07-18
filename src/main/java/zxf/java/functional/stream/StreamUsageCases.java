@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StreamUsageCases {
-    private static Set<String> stopWords = Set.of("is", "a", "an", "the", "am", "are", "be", "to", "for", "of", "and", "in", "or", "on", "by", "it", "as", "s", "any");
-    private static Pattern splitter = Pattern.compile("[\\s,.;:\\)\\(’]+");
+    private static final Set<String> stopWords = Set.of("is", "a", "an", "the", "am", "are", "be", "to", "for", "of", "and", "in", "or", "on", "by", "it", "as", "s", "any");
+    private static final Pattern splitter = Pattern.compile("[\\s,.;:\\)\\(’]+");
 
     public static void main(String[] args) throws IOException, URISyntaxException {
         use_case1();
@@ -27,13 +27,16 @@ public class StreamUsageCases {
     public static void use_case1() throws IOException, URISyntaxException {
         // Please note "Files.readString(Paths.get(StreamCreationCases.class.getResource("/files/article.txt").toURI()))" will fail when run this program by jar
         String fileContent = Files.readString(Paths.get(StreamCreationCases.class.getResource("/files/article.txt").toURI()));
-        Map<String, Integer> wordCount = splitter.splitAsStream(fileContent).map(String::toLowerCase).filter(Predicate.not(String::isBlank)).filter(Predicate.not(stopWords::contains)).reduce(new HashMap<>(), (r, w) -> {
-            r.compute(w, (k, v) -> v == null ? 1 : v + 1);
-            return r;
-        }, (r1, r2) -> {
-            r1.putAll(r2);
-            return r1;
-        });
+        // 词频统计用 collect 三参形式做可变归约：每个（并行）子任务持有独立 HashMap（HashMap::new），
+        // combiner 用 merge 合并计数。不要写成 reduce(new HashMap<>(), ...)——那样所有子任务共享
+        // 同一个可变 identity，accumulator 的副作用违反归约契约，并行时数据竞争且 putAll 会丢计数。
+        Map<String, Integer> wordCount = splitter.splitAsStream(fileContent)
+                .map(String::toLowerCase)
+                .filter(Predicate.not(String::isBlank))
+                .filter(Predicate.not(stopWords::contains))
+                .collect(HashMap::new,
+                        (r, w) -> r.merge(w, 1, Integer::sum),
+                        (r1, r2) -> r2.forEach((k, v) -> r1.merge(k, v, Integer::sum)));
         wordCount.forEach((k, v) -> {
             System.out.println("Word: " + k + ", " + v);
         });

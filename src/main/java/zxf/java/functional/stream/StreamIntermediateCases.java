@@ -80,7 +80,7 @@ public class StreamIntermediateCases {
         System.out.println("订单总金额: " + totalAmount);
     }
 
-    // distinct：基于 equals 去重（无状态中间操作）
+    // distinct：基于 equals 去重（有状态中间操作：需缓存已见元素）
     public static void use_case3_distinct() {
         System.out.println("\n=== use_case3: distinct 去重 ===");
         List<Integer> distinct = Stream.of(1, 2, 2, 3, 3, 3, 4)

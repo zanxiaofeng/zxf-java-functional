@@ -21,35 +21,35 @@ public class AccountOverviewCases {
 
     public static void case_procedure() {
         AccountOverview overview = produce_accountOverview();
-        AccountOverview.checkAccountNumber(overview, "123456");
+        System.out.println("procedure  check 12345 = " + AccountOverview.checkAccountNumber(overview, "12345"));
     }
 
 
     public static void case_oop() {
         AccountOverview overview = produce_accountOverview();
-        overview.checkAccount("123456");
+        System.out.println("oop        check 12345 = " + overview.checkAccount("12345"));
     }
 
     public static void case_functional_1() {
         AccountOverview overview = produce_accountOverview();
         Predicate<String> accountChecker = AccountOverview.accountChecker(overview);
-        accountChecker.test("123456");
+        System.out.println("functional check 12345 = " + accountChecker.test("12345"));
     }
 
-    //curring(closure)
+    //currying(closure)
     public static void case_functional_2() {
         AccountOverview overview = produce_accountOverview();
         Predicate<String> accountChecker = Currying.curryingPredicate(AccountOverview::checkAccountNumber).apply(overview);
-        accountChecker.test("123456");
+        System.out.println("currying   check 12345 = " + accountChecker.test("12345"));
     }
 
-    //curring(closure), compose
+    //currying(closure), compose + cache
     public static void case_functional_3() {
         AccountOverview overview = produce_accountOverview();
         Predicate<String> accountChecker = Currying.curryingPredicate(AccountOverview::checkAccountNumber).apply(overview);
         Predicate<String> cachedAccountChecker = Caching.cachedPredicate(accountChecker);
-        cachedAccountChecker.test("123456");
-        cachedAccountChecker.test("123456");
+        System.out.println("cached     check 12345（第一次，真实计算）= " + cachedAccountChecker.test("12345"));
+        System.out.println("cached     check 12345（第二次，命中缓存）= " + cachedAccountChecker.test("12345"));
     }
 
 
