@@ -1,8 +1,5 @@
 package zxf.java.functional.core.function;
 
-import zxf.java.functional.core.function.checked.CheckedBiConsumer;
-import zxf.java.functional.core.function.checked.CheckedConsumer;
-
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;

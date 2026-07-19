@@ -51,14 +51,14 @@ public class OptionalCurrying {
         }
 
         public BiCurryingConsumer<U, P> apply(T t) {
-            return new BiCurryingConsumer(curried.apply(t));
+            return new BiCurryingConsumer<>(curried.apply(t));
         }
 
         public Optional<BiCurryingConsumer<U, P>> apply(Optional<T> t) {
             if (t.isPresent()) {
-                return new Optional<>(apply(t.get()));
+                return Optional.ofNullable(apply(t.get()));
             }
-            return new Optional();
+            return Optional.empty();
         }
     }
 
@@ -75,9 +75,9 @@ public class OptionalCurrying {
 
         public Optional<CheckedConsumer<U>> apply(Optional<T> t) {
             if (t.isPresent()) {
-                return new Optional<>(apply(t.get()));
+                return Optional.ofNullable(apply(t.get()));
             }
-            return new Optional();
+            return Optional.empty();
         }
     }
 
@@ -85,11 +85,11 @@ public class OptionalCurrying {
         private Optional<Function<T, Function<U, CheckedFunction<P, R>>>> curried;
 
         public TriCurryingFunction(Function<T, Function<U, CheckedFunction<P, R>>> curried) {
-            this.curried = new Optional<>(curried);
+            this.curried = Optional.ofNullable(curried);
         }
 
         public BiCurryingFunction<U, P, R> apply(T t) {
-            return apply(new Optional<>(t));
+            return apply(Optional.ofNullable(t));
         }
 
         public BiCurryingFunction<U, P, R> apply(Optional<T> t) {
@@ -104,11 +104,11 @@ public class OptionalCurrying {
         private Optional<Function<T, CheckedFunction<U, R>>> curried;
 
         public BiCurryingFunction(Function<T, CheckedFunction<U, R>> curried) {
-            this.curried = new Optional<>(curried);
+            this.curried = Optional.ofNullable(curried);
         }
 
         public CurryingFunction<U, R> apply(T t) {
-            return apply(new Optional<>(t));
+            return apply(Optional.ofNullable(t));
         }
 
         public CurryingFunction<U, R> apply(Optional<T> t) {
@@ -123,18 +123,18 @@ public class OptionalCurrying {
         private Optional<CheckedFunction<U, R>> curried;
 
         public CurryingFunction(CheckedFunction<U, R> curried) {
-            this.curried = new Optional<>(curried);
+            this.curried = Optional.ofNullable(curried);
         }
 
         public Optional<R> apply(U u) throws Exception {
-            return apply(new Optional<U>(u));
+            return apply(Optional.ofNullable(u));
         }
 
         public Optional<R> apply(Optional<U> u) throws Exception {
             if (curried.isPresent() && u.isPresent()) {
-                return new Optional<>(curried.get().apply(u.get()));
+                return Optional.ofNullable(curried.get().apply(u.get()));
             }
-            return new Optional();
+            return Optional.empty();
         }
     }
 }

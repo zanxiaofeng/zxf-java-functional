@@ -8,16 +8,16 @@ import java.util.function.Predicate;
 public class ProductUpdateCaseBasedChecker extends CaseBasedChecker<ProductUpdateInput> {
 
     public ProductUpdateCaseBasedChecker() {
-        // 使用 Java 8 原生的 Predicate.negate() 做逻辑取反，与 Readme「Java8 函数式」定位一致。
-        // 注意：Predicate.not() 是 Java 11+ 的增强 API，此处不使用。
+        // 用 Predicate.not()（Java 11+）对方法引用做逻辑取反；项目已是 JDK 21，
+        // 无需再用「显式强转 + negate()」的 Java 8 写法。
         super(
-                new CaseRule<>("error-1", ((Predicate<ProductUpdateInput>) ProductUpdateInput::preHasName).negate(), ((Predicate<ProductUpdateInput>) ProductUpdateInput::postHasName).negate()),
-                new CaseRule<>("error-2", ((Predicate<ProductUpdateInput>) ProductUpdateInput::preHasEmail).negate(), ((Predicate<ProductUpdateInput>) ProductUpdateInput::postHasEmail).negate())
+                new CaseRule<>("error-1", Predicate.not(ProductUpdateInput::preHasName), Predicate.not(ProductUpdateInput::postHasName)),
+                new CaseRule<>("error-2", Predicate.not(ProductUpdateInput::preHasEmail), Predicate.not(ProductUpdateInput::postHasEmail))
         );
     }
 
     public static void main(String[] args) {
         ProductUpdateCaseBasedChecker productUpdateCaseBasedChecker = new ProductUpdateCaseBasedChecker();
-        System.out.println(productUpdateCaseBasedChecker.singleCheck(new ProductUpdateInput(new Product(), new Product())));
+        System.out.println("singleCheck 结果 = " + productUpdateCaseBasedChecker.singleCheck(new ProductUpdateInput(new Product(), new Product())));
     }
 }

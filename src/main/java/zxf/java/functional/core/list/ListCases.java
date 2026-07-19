@@ -17,6 +17,7 @@ public class ListCases {
         System.out.println("use_case1");
         List<Integer> numbers = new List<>(23, 45, 67);
         List<String> strings = numbers.map(ListCases::add10);
+        System.out.println("map 结果: " + strings.getContents());
     }
 
     //Monad
@@ -24,17 +25,19 @@ public class ListCases {
         System.out.println("use_case2");
         List<Integer> numbers = new List<>(23, 45, 67);
         List<String> strings = numbers.flatMap(ListCases::add100);
+        System.out.println("flatMap 结果: " + strings.getContents());
     }
 
     //Applicative--左结合，第一个参数用函子map，后面的参数用应用子apply
     public static void use_case3() throws Exception {
         System.out.println("use_case3");
-        Function<Integer, CheckedFunction<Integer, String>> curriedTriFunction = Currying.curryingFunction(ListCases::mulAndToString);
+        Function<Integer, CheckedFunction<Integer, String>> curriedBiFunction = Currying.curryingFunction(ListCases::mulAndToString);
 
         List<Integer> numbersLeft = new List<>(23, 45, 67);
-        List<CheckedFunction<Integer, String>> middleResult = numbersLeft.map(curriedTriFunction);
+        List<CheckedFunction<Integer, String>> middleResult = numbersLeft.map(curriedBiFunction);
         List<Integer> numbersRight = new List<>(10, 100, 200);
         List<String> finalResult = numbersRight.applyChecked(middleResult);
+        System.out.println("apply 结果: " + finalResult.getContents());
     }
 
     private static String add10(Integer value) {

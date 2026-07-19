@@ -50,7 +50,7 @@ public class MethodReferenceCases {
 
     // object::instanceMethod（对象实例方法引用）：System.out::println
     // 等价 Lambda：s -> System.out.println(s)
-    // 对应 Readme「方法引用 - object:instanceMethod(对象实例方法引用)」
+    // 对应 Readme「方法引用 - object::instanceMethod(对象实例方法引用)」
     public static void use_case4_objectInstanceMethod() {
         System.out.println("use_case4 object::instanceMethod —— System.out::println");
         Consumer<String> ref = System.out::println;

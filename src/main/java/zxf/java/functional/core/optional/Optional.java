@@ -23,13 +23,8 @@ public class Optional<T> {
     /** 持有值；null 表示 empty。final 保证不可变。 */
     private final T value;
 
-    /** 构造一个 empty 实例（value 为 null）。保留以兼容旧调用方。 */
-    public Optional() {
-        this.value = null;
-    }
-
-    /** 直接持有传入值（可为 null，等价于 ofNullable）。保留以兼容旧调用方。 */
-    public Optional(T value) {
+    /** 直接持有传入值（可为 null，等价于 ofNullable）。私有：请使用 empty()/of()/ofNullable() 工厂方法。 */
+    private Optional(T value) {
         this.value = value;
     }
 
@@ -138,7 +133,7 @@ public class Optional<T> {
     public <R> Optional<R> flatMapChecked(CheckedFunction<T, Optional<R>> mapper) throws Exception {
         Objects.requireNonNull(mapper, "mapper 不能为空");
         if (isPresent()) {
-            return mapper.apply(value);
+            return Objects.requireNonNull(mapper.apply(value), "flatMapChecked 的 mapper 不能返回 null Optional");
         }
         return empty();
     }

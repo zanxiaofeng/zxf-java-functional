@@ -10,7 +10,7 @@
 - [6. FP 与 OOP 的融合设计模式](#6-fp-与-oop-的融合设计模式)
 - [7. 企业级实战：完整的代码案例](#7-企业级实战完整的代码案例)
 - [8. 性能考量与生产环境最佳实践](#8-性能考量与生产环境最佳实践)
-- [9. 未来展望：Java 25 与 Stream API 的演进](#9-未来展望java-25-与-stream-api-的演进)
+- [9. 近期演进：Java 24/25 与 Stream API 的演进](#9-近期演进java-2425-与-stream-api-的演进)
 - [10. 总结](#10-总结)
 
 ---
@@ -162,13 +162,13 @@ Function<String, String> pipeline = trim.andThen(toUpper).andThen(truncate);
 
 ### 3.2 Lambda 表达式的字节码实现
 
-理解 Lambda 的底层实现对于性能优化和调试至关重要。Java 编译器并非简单地将 Lambda 转换为匿名内部类——这是 Java 8 之前常见误解。
+理解 Lambda 的底层实现对于性能优化和调试至关重要。Java 编译器并非简单地将 Lambda 转换为匿名内部类——这是自 Java 8 之初以来的常见误解。
 
 **编译期行为**：
 
 当编译器遇到 Lambda 表达式时，它会：
 1. 生成一个 `invokedynamic` 调用指令
-2. 将 Lambda 体编译为一个私有静态方法（如果 Lambda 不捕获外部变量）或实例方法
+2. 将 Lambda 体编译为一个私有静态方法（未捕获 `this` 时；捕获的局部变量会成为该方法的额外参数）或实例方法（捕获 `this` 时）
 3. 通过 `LambdaMetafactory.metafactory` 在运行时动态生成实现函数式接口的类
 
 ```java
@@ -322,7 +322,7 @@ public static <T> Collector<T, ?, Set<T>> toLinkedHashSet() {
 
 ### 4.5 原始类型特化流
 
-`Stream<T>` 对原始类型的装箱（Boxing）是 Stream API 最大的性能陷阱。`IntStream`、`LongStream`、`DoubleStream` 通过避免装箱提供了数量级的性能提升：
+`Stream<T>` 对原始类型的装箱（Boxing）是 Stream API 最大的性能陷阱。`IntStream`、`LongStream`、`DoubleStream` 通过避免装箱提供显著的性能提升（视场景可达数倍）：
 
 ```java
 // 性能陷阱：Stream<Integer> 每次迭代都创建 Integer 对象
@@ -390,7 +390,7 @@ if (order != null) {
 在企业级代码中，Optional 常与异常处理结合使用，提供更优雅的失败处理模式：
 
 ```java
-// 将可能抛出异常的操作为 Optional
+// 将可能抛出异常的操作包装为 Optional
 public Optional<byte[]> safeReadFile(Path path) {
     try {
         return Optional.of(Files.readAllBytes(path));
@@ -603,6 +603,8 @@ public class DataProcessor {
     }
 
     // 预配置的变体：求所有已完成订单的金额总和
+    // 注：本节为贴合金额语义将 getAmount 视为 BigDecimal；前文示例（如 summingDouble、
+    //     getAmount() > 1000）将其作为 double 使用。概念代码以演示为主，落地请以实际模型类型为准。
     public Optional<BigDecimal> sumOrderAmounts(List<Order> orders) {
         return process(
             orders,
@@ -831,7 +833,7 @@ public Result<PaymentResponse, PaymentError> processPayment(PaymentRequest reque
 **法则一：避免装箱**
 
 ```java
-// 性能陷阱： boxed Stream 比原始流慢一个数量级
+// 性能陷阱： boxed Stream 比原始流慢数倍（装箱/拆箱开销）
 List<Integer> numbers = IntStream.range(0, 1_000_000).boxed().toList();
 long slow = numbers.stream().mapToLong(Integer::longValue).sum();
 
@@ -919,17 +921,17 @@ public static <T> Consumer<T> logged(String stage, Logger log) {
 
 ### 8.4 内存管理与逃逸分析
 
-JVM 的逃逸分析（Escape Analysis）可以优化短生命周期的 Lambda 对象，将其分配在栈上而非堆上。确保以下 JVM 参数开启：
+JVM 的逃逸分析（Escape Analysis）可以优化短生命周期的 Lambda 对象：通过标量替换（Scalar Replacement）将对象字段拆解为栈上局部变量，避免堆分配（HotSpot 并不真的把对象布局在栈上）。这些优化默认开启（自 JDK 6u23 起），无需显式设置：
 
 ```bash
--XX:+DoEscapeAnalysis -XX:+EliminateAllocations
+# 默认已开启，仅供查阅：-XX:+DoEscapeAnalysis -XX:+EliminateAllocations
 ```
 
 在热点代码路径上，JIT 编译器可以将简单的 Lambda 内联到调用方，完全消除调用开销。
 
 ---
 
-## 9. 未来展望：Java 25 与 Stream API 的演进
+## 9. 近期演进：Java 24/25 与 Stream API 的演进
 
 ### 9.1 Stream Gatherers API（Java 24，JEP 485）
 
@@ -952,7 +954,7 @@ List<Double> movingAvg = Stream.of(1, 2, 3, 4, 5, 6)
 
 ### 9.2 模式匹配与 Record 模式的融合
 
-Java 21+ 引入的模式匹配（Pattern Matching）与函数式编程形成了强大的组合：
+Java 21 转正的 switch 模式匹配与 Record 模式（instanceof 模式匹配自 Java 16 已转正）与函数式编程形成了强大的组合：
 
 ```java
 // 模式匹配 + Record 解构（Java 21+）
@@ -980,7 +982,7 @@ public Response handleRequest(Request request) {
     return ScopedValue.where(REQUEST_ID, request.getId()).call(() -> {
         // 所有异步操作都可以访问 REQUEST_ID
         try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            // Java 24+ final API：fork 返回 Subtask，join 完成后用 get() 取值
+            // Java 24 起 fork 返回 Subtask（Java 25 由 JEP 505 转正）：join 完成后用 get() 取值
             Subtask<User> user = scope.fork(() -> userService.findById(request.getUserId()));
             Subtask<List<Order>> orders = scope.fork(() -> orderService.findByUser(request.getUserId()));
 

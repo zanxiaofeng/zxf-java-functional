@@ -68,6 +68,8 @@ public class ThrowingCases {
 
     /** 读取文件首行；抛出受检 IOException。 */
     private static String readFirstLine(String path) throws java.io.IOException {
-        return Files.readString(Path.of(path)).trim();
+        try (java.io.BufferedReader reader = Files.newBufferedReader(Path.of(path))) {
+            return reader.readLine();
+        }
     }
 }

@@ -11,7 +11,7 @@
 >- 函数式（输入，局部，输出）
 
 # 数据
->- 基本类型，如 Int，Long，String
+>- 基本类型，如 Int，Long，String（语言无关的示意类型名；按 Java 语义 String/Long 并非基本类型）
 >- 复合类型，如 Structure，Class
 >- 容器类型，如 Array，List，Map
 
@@ -76,9 +76,9 @@
 >- 函数作为类的成员变量可以实现面向对象和函数式结合的新多态模式（组合而非继承式多态）
 >- 只有一个方法的接口（不包含 Default 方法）与函数可以相互转换，不仅便捷，而且命名接口使得函数式的使用在设计上更有意义（比如结合设计模式）
 >- 一个函数值是否可以赋值给一个函数类型，首先要看函数值的参数类型、参数顺序、返回值类型是否与函数类型声明的形式兼容一致，其次要看函数值声明的 Exceptions(Throws 子句)能否被函数类型声明的 Exceptions(Throws 子句)覆盖包含；立即函数 Lambda 虽然没有显式的 Throws 子句，但编译器可以依据其代码中调用的函数的签名汇总出其可能 Throw 的 Exceptions，因此也要符合这个约束条件
->- https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exceptionss
+>- https://stackoverflow.com/questions/18198176/java-8-lambda-function-that-throws-exception
 
-> 见 `function/FunctionalUsage.java`（函数作为类型/值、函数式多态三种形式、checked 异常 wrap 方案）。
+> 见 `function/FunctionalUsage.java`（函数作为类型/值、函数式多态、checked 异常 wrap 方案；函数作为类成员变量的多态另见 `core/checker/`）。
 > 抛 checked 异常的函数如何接入 JDK 标准 API，见 `core/function/throwing/ThrowingCases.java`。
 
 # Optional
@@ -174,13 +174,13 @@
 >- 闭包是只有一个方法的匿名类的一个实例，闭包引用的局部变量将 Copy 到匿名类的成员变量中
 >- 依据闭包对其引用的变量的作用以及读写方式，可以将其分为参数配置型（只读，以参数及配置类型而定）变量引用、底层数据型（只读，多为集合型）变量引用以及数据缓存型（读写，多为 Map）引用
 >- 闭包在实现上是一个结构体或类，它存储了一个函数（通常是其入口地址）和一个关联的环境（相当于一个符号查找表），环境里是若干对符号和值的对应关系，它既要包括约束变量（该函数内部绑定的符号），也要包括自由变量（在函数外部定义但在函数内被引用），有些函数也可能没有自由变量。闭包和函数最大的不同在于，当捕捉闭包的时候，它的自由变量会在捕捉时被确定，这样即便脱离了捕捉时的上下文，它也能照常运行；捕捉时对于值的处理可以是值拷贝，也可以是名称引用，这通常由语言设计者决定，也可能由用户自行指定（如 C++）[维基百科]
->- Wrap Object
+>- Wrap Object（对应 store 演示中的 PutCommand/GetCommand 包装对象）
 
 > 见 `pattern/closure/`（overview 三范式对照 / account 参数配置型 / cache 数据缓存型 vs OOP / store + Wrap Object）。
 
 ## 柯里化-Currying/Partial
 >- 柯里化生成的就是闭包函数，其中被柯里化的参数就是闭包变量
->- 显式命名柯里化：出于设计考虑采用命名柯里化函数，可以提供设计的可理解性（如 `ILogDecorator.decorate` 方法）
+>- 显式命名柯里化：出于设计考虑采用命名柯里化函数，可以提供设计的可理解性（如 `CurryingCases.decorate` 方法）
 >- 柯里化工具类：出于重用考虑使用通用柯里化工具类，可以降低代码重复，提供高一致性
 
 > 见 `pattern/currying/CurryingCases.java`（Partial 偏应用、`core.Currying` 工具类、命名柯里化 logger/decorate）；
@@ -218,7 +218,7 @@
 > 见 `pattern/designpattern/StrategyCases.java`。
 
 ## 装饰器
-用 `Function.andThen` / `compose` 或 `UnaryOperator<Function>` 包装实现装饰器（日志装饰、缓存装饰），呼应命名柯里化 `ILogDecorator.decorate`。
+用 `Function.andThen` / `compose` 或 `UnaryOperator<Function>` 包装实现装饰器（日志装饰、缓存装饰），呼应命名柯里化 `CurryingCases.decorate`。
 
 > 见 `pattern/designpattern/DecoratorCases.java`。
 

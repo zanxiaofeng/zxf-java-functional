@@ -32,10 +32,12 @@ public class Stream<T> {
     }
 
     public Stream<T> filter(Predicate<T> predicate) {
+        Objects.requireNonNull(predicate, "predicate 不能为空");
         return new Stream<>(new FilterProcessor<>(this.finalProcessor, predicate));
     }
 
     public <R> Stream<R> map(Function<T, R> mapper) {
+        Objects.requireNonNull(mapper, "mapper 不能为空");
         return new Stream<R>(new MapProcessor<>(finalProcessor, mapper));
     }
 
@@ -44,6 +46,7 @@ public class Stream<T> {
      * 把每个 T 映射成一条 {@code Stream<R>}，再拍平成一条流。
      */
     public <R> Stream<R> flatMap(Function<T, Stream<R>> mapper) {
+        Objects.requireNonNull(mapper, "mapper 不能为空");
         return new Stream<R>(new FlatMapProcessor<>(finalProcessor, mapper));
     }
 
@@ -92,6 +95,9 @@ public class Stream<T> {
      *
      * <p>语义：取第一个元素作为初始累加值，依次与后续元素两两归约；
      * 空流返回 {@link java.util.Optional#empty()}。</p>
+     *
+     * <p>注意：若流恰好只含一个 null 元素，本实现返回 empty（视作「无有效值」），
+     * 与 JDK 此时抛 NullPointerException 的行为不同。</p>
      */
     public java.util.Optional<T> reduce(BinaryOperator<T> reducer) {
         Objects.requireNonNull(reducer, "reducer 不能为空");

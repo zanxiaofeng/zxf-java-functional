@@ -15,7 +15,7 @@ public class CachingCases {
     }
 
     public static void use_case1() {
-        System.out.println("\n#case 1: ");
+        System.out.println("\n#case 1: 一元函数缓存（Function，单参数直接作 HashMap 键）");
         System.out.println("calculate result for 10 is " + realCalculate(10));
         System.out.println("calculate result for 10 is " + realCalculate(10));
         System.out.println("calculate result for 10 is " + realCalculate(10));
@@ -28,7 +28,7 @@ public class CachingCases {
     }
 
     public static void use_case2() {
-        System.out.println("\n#case 2: ");
+        System.out.println("\n#case 2: 二元函数缓存（BiFunction，参数对映射为键）");
         System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
         System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
         System.out.println("calculate result for 10, 10 is " + realCalculate2(10, 10));
@@ -41,7 +41,7 @@ public class CachingCases {
     }
 
     public static void use_case3() {
-        System.out.println("\n#case 3: ");
+        System.out.println("\n#case 3: 三元函数缓存（TriFunction，参数三元组映射为键）");
         System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
         System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));
         System.out.println("calculate result for 10, 10, 10 is " + realCalculate3(10, 10, 10));

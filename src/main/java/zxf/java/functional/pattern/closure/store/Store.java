@@ -8,6 +8,7 @@ import java.util.Map;
 public class Store {
     public static <T, U> TriFunction<String, T, U, U> store() {
         Map<T, U> store = new HashMap<>();
+        // 教学简化：action 不区分大小写等于 "get" 时读取，其余一律按 put 处理（非法 action 不报错）
         return (action, t, u) -> {
             if (action.equalsIgnoreCase("get")) {
                 return store.getOrDefault(t, u);
@@ -20,6 +21,7 @@ public class Store {
         Map<T, U> store = new HashMap<>();
         PutCommand<T, U> putCommand = new PutCommand<>(store);
         GetCommand<T, U> getCommand = new GetCommand<>(store);
+        // 同上：非 "get" 的 action（含拼写错误）静默执行 put
         return (action, t, u) -> {
             if (action.equalsIgnoreCase("get")) {
                 return getCommand.execute(t, u);

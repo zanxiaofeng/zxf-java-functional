@@ -75,6 +75,6 @@ public class RecursionCases {
         System.out.println("factorialTail(5, 1) = " + factorialTail(5, 1));
         System.out.println("factorialTail(20, 1) = " + factorialTail(20, 1));
         System.out.println("fibTail(10, 0, 1) = " + fibTail(10, 0, 1));
-        System.out.println("fibTail(50, 0, 1) = " + fibTail(50, 0, 1) + " (尾递归/迭代可处理大 n，普通递归不可)");
+        System.out.println("fibTail(50, 0, 1) = " + fibTail(50, 0, 1) + " (普通递归为指数时间不可行；尾递归形式为线性时间，但 Java 不做尾调用优化，超大 n 仍需迭代/Stream)");
     }
 }

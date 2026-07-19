@@ -12,6 +12,12 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+/**
+ * 函数缓存（memoization）演示：用闭包捕获 HashMap，为纯函数透明地加一层缓存。
+ *
+ * <p><b>演示用途</b>：缓存无界（无淘汰策略）且非线程安全，请勿照抄到生产代码；
+ * 生产环境请使用 Guava Cache / Caffeine / ConcurrentHashMap。</p>
+ */
 public class Caching {
     public static <T, R> Function<T, R> cachedFunction(Function<T, R> realFunction) {
         final Map<T, R> cache = new HashMap<>();

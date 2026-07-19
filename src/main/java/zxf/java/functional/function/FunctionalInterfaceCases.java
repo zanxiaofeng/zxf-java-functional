@@ -104,6 +104,7 @@ public class FunctionalInterfaceCases {
         Predicate<Integer> evenAndGt10 = even.and(gt10);
         System.out.println("  even.and(gt10).test(12) = " + evenAndGt10.test(12));
         System.out.println("  even.and(gt10).test(8) = " + evenAndGt10.test(8));
+        System.out.println("  even.or(gt10).test(11) = " + even.or(gt10).test(11));
         System.out.println("  even.negate().test(3) = " + even.negate().test(3));
     }
 
@@ -114,6 +115,7 @@ public class FunctionalInterfaceCases {
         BiPredicate<String, String> sameLen = (a, b) -> a.length() == b.length();
         BiPredicate<String, String> equalsOrSameLen = equals.or(sameLen);
         System.out.println("  String::equals.test(\"a\",\"a\") = " + equals.test("a", "a"));
+        System.out.println("  equals.and(sameLen).test(\"ab\",\"ab\") = " + equals.and(sameLen).test("ab", "ab"));
         System.out.println("  equals.or(sameLen).test(\"ab\",\"cd\") = " + equalsOrSameLen.test("ab", "cd"));
         System.out.println("  sameLen.negate().test(\"ab\",\"cd\") = " + sameLen.negate().test("ab", "cd"));
     }

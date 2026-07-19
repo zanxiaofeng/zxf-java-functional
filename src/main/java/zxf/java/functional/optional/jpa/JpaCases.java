@@ -90,7 +90,7 @@ public class JpaCases {
 
     // ===== 场景三：findById + or + orElseGet（多源回退链） =====
 
-    // or：主源查不到则回退到备用源，最终用 orElseGet 取默认值
+    // or：主源查不到则回退到备用源；收尾按契约二选一：orElseThrow（要求必有值）或 orElseGet（给默认值）
     public static void use_case3() {
         System.out.println("use_case3 findById + or（多源回退链）");
         CustomerRepo primary = new InMemoryCustomerRepo();     // 主源
@@ -108,13 +108,15 @@ public class JpaCases {
                 .orElseThrow(() -> new RuntimeException("all sources empty"));
         System.out.println("  主源 miss -> 备用源命中: name = " + fromBackup.getName());
 
-        // 全部 miss 时（两源都 empty）走 orElseGet 默认值
+        // 两源都 miss（primary 与 emptyRepo 均 empty）走 orElseGet 默认值
         CustomerRepo emptyRepo = id -> Optional.empty();
-        Customer fallback = emptyRepo.findById("c-1").orElseGet(() -> {
-            Customer c = new Customer();
-            c.setName("(anonymous)");
-            return c;
-        });
-        System.out.println("  全部 miss 时默认值: name = " + fallback.getName());
+        Customer fallback = primary.findById("c-y")
+                .or(() -> emptyRepo.findById("c-y"))
+                .orElseGet(() -> {
+                    Customer c = new Customer();
+                    c.setName("(anonymous)");
+                    return c;
+                });
+        System.out.println("  两源都 miss 时默认值: name = " + fallback.getName());
     }
 }

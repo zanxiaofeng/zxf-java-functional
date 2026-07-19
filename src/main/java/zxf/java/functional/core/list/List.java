@@ -9,6 +9,7 @@ import java.util.function.Function;
 public class List<T> {
     private ArrayList<T> contents;
 
+    @SafeVarargs
     public List(T... contents) {
         Objects.requireNonNull(contents);
         this.contents = new ArrayList<>();

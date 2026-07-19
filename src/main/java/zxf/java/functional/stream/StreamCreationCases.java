@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 // Stream 创建方式全集：演示 Stream API 提供的各种创建入口
 public class StreamCreationCases {
-    private static Pattern splitter = Pattern.compile("[\\s,.;:\\)\\(’]+");
+    private static final Pattern splitter = Pattern.compile("[\\s,.;:\\)\\(’]+");
 
     public static void main(String[] args) throws IOException, URISyntaxException {
         use_case1_stream_of();

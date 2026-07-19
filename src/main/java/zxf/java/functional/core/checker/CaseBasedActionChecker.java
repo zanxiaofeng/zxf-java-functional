@@ -43,8 +43,9 @@ public class CaseBasedActionChecker<T> {
             return caseId;
         }
 
+        /** 返回条件数组的防御性拷贝，防止外部篡改规则。 */
         public Predicate<T>[] getChecks() {
-            return checks;
+            return checks.clone();
         }
 
         public BiConsumer<T, String> getAction() {

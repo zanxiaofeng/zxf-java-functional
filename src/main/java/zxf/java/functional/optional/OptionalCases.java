@@ -16,7 +16,7 @@ import java.util.Optional;
  */
 public class OptionalCases {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         use_case1();              // of / ofNullable / orElse
         use_case2();              // orElseThrow
         use_case3();              // map.map.map 完整闭环（对应 Readme Case 3）
@@ -268,7 +268,9 @@ public class OptionalCases {
 
     // ===== 不推荐方法组（对应 Readme 不推荐使用） =====
 
-    // get / isPresent / isEmpty / orElseThrow() 无参：不推荐，附替代方案
+    // get / isPresent / isEmpty / orElseThrow() 无参：不推荐，附替代方案。
+    // 注意：真正的反模式是「isPresent()/isEmpty() + get() 替代 map/ifPresent 链式调用」这一组合用法，
+    // 而非这些方法本身——例如 orElseThrow() 场景用 isPresent() 做防御性判空完全合理。
     public static void use_case11_discouraged() {
         System.out.println("use_case11 不推荐方法组: get / isPresent / isEmpty / orElseThrow()");
 

@@ -110,43 +110,43 @@ public class AccountBasicCases {
 
     private static void dynamic_use_case(Account account, String... accountTypes) {
         if (accountTypes[0].equals(account.getAccountType())) {
-            System.out.println(String.format("do some thing for %s type", accountTypes[0]));
+            System.out.printf("do some thing for %s type%n", accountTypes[0]);
         }
 
         if (!accountTypes[0].equals(account.getAccountType())) {
-            System.out.println(String.format("do some thing for none-%s type", accountTypes[0]));
+            System.out.printf("do some thing for none-%s type%n", accountTypes[0]);
         }
 
         if (List.of(accountTypes).contains(account.getAccountType())) {
-            System.out.println(String.format("do some thing for any of %s type", String.join(",", accountTypes)));
+            System.out.printf("do some thing for any of %s type%n", String.join(",", accountTypes));
         }
     }
 
     private static void dynamic_basic_method_use_case(Account account, String... accountTypes) {
         if (account.isAccountOf(accountTypes[0])) {
-            System.out.println(String.format("do some thing for %s type", accountTypes[0]));
+            System.out.printf("do some thing for %s type%n", accountTypes[0]);
         }
 
         if (!account.isAccountOf(accountTypes[0])) {
-            System.out.println(String.format("do some thing for none-%s type", accountTypes[0]));
+            System.out.printf("do some thing for none-%s type%n", accountTypes[0]);
         }
 
         if (account.isAccountOfAny(accountTypes)) {
-            System.out.println(String.format("do some thing for any of %s type", String.join(",", accountTypes)));
+            System.out.printf("do some thing for any of %s type%n", String.join(",", accountTypes));
         }
     }
 
     private static void dynamic_basic_predicate_use_case(Account account, String... accountTypes) {
         if (Account.Predicates.isAccountOfType(accountTypes[0]).test(account)) {
-            System.out.println(String.format("do some thing for %s type", accountTypes[0]));
+            System.out.printf("do some thing for %s type%n", accountTypes[0]);
         }
 
         if (!Account.Predicates.isAccountOfType(accountTypes[0]).test(account)) {
-            System.out.println(String.format("do some thing for none-%s type", accountTypes[0]));
+            System.out.printf("do some thing for none-%s type%n", accountTypes[0]);
         }
 
         if (Account.Predicates.isAccountOfAnyTypes(accountTypes).test(account)) {
-            System.out.println(String.format("do some thing for any of %s type", String.join(",", accountTypes)));
+            System.out.printf("do some thing for any of %s type%n", String.join(",", accountTypes));
         }
     }
 }

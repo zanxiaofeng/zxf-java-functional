@@ -6,8 +6,8 @@ import java.util.function.Function;
 
 /**
  * 装饰器模式的函数式实现，对应 Readme「函数式设计模式」。
- * 用 Function.andThen / compose 包装原函数实现装饰器，
- * 呼应 Readme 中 ILogDecorator.decorate 的命名柯里化风格。
+ * 用 Function.andThen 包装原函数实现装饰器，
+ * 呼应 Readme 中 CurryingCases.decorate 的命名柯里化风格。
  * 装饰器本身是一个高阶函数：接收原函数，返回包装后的新函数。
  */
 public class DecoratorCases {

@@ -16,6 +16,7 @@ public class OOPCache {
     }
 
     public Integer realCalculate(Integer x) {
+        System.out.println("realCalculate(" + x + ")");
         return x + 2;
     }
 }
