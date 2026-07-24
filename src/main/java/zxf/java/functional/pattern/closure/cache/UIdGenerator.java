@@ -1,6 +1,6 @@
 package zxf.java.functional.pattern.closure.cache;
 
-import java.time.LocalDateTime;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -19,7 +19,8 @@ public class UIdGenerator {
         return ()-> {
             String batchNumber = null;
             do {
-                batchNumber = LocalDateTime.now().toString();
+               ;
+                batchNumber = String.valueOf(System.nanoTime());
             } while (ids.contains(batchNumber));
             ids.add(batchNumber);
             return batchNumber;
