@@ -125,7 +125,7 @@ List<String> result = orders.stream()
 | 代码组织 | 函数组合 | 类继承与组合 |
 | 执行模型 | 表达式求值（声明式） | 语句序列（命令式） |
 | 并发模型 | 天然线程安全（无共享状态） | 需显式同步机制 |
-| 错误处理 | 显式返回（Optional, Either） | 异常抛出 |
+| 错误处理 | 显式返回（Either / Result；Optional 仅表达值缺失，不承载失败语义） | 异常抛出 |
 | 适用场景 | 数据转换、并发、事件流 | 业务建模、状态机、UI |
 
 理解这张对比表至关重要：**FP 和 OOP 不是对立关系，而是互补关系**。在企业级 Java 系统中，对象负责建模业务实体和封装状态，函数负责定义数据转换逻辑——这种混合范式正是现代 Java 架构的精髓。
@@ -197,6 +197,17 @@ users.stream().map(User::getName)
 users.stream().map(user -> user.getName() + " (VIP)")
 ```
 
+不过生产环境中更值得关注的区分是**是否捕获变量**：不捕获任何变量（也不捕获 `this`）的 Lambda 与方法引用，同一调用点的每次求值通常返回**同一个缓存实例**；而捕获了外部变量的 Lambda，每次求值都会创建一个新实例（JIT 逃逸分析可能将其消除，但不应依赖）。在每秒创建百万级 Lambda 实例的热点管道中，这一差异才是比"方法引用还是 Lambda"更实质的分配压力来源：
+
+```java
+// 无捕获：实例可缓存复用，每次求值拿到的是同一个对象
+Predicate<Order> completed = o -> o.getStatus() == Status.COMPLETED;
+
+// 有捕获：每次执行到这一行都会创建新的 Lambda 实例（复制 thresholds 的引用）
+OrderThresholds thresholds = config.current();
+Predicate<Order> expensive = o -> o.getAmount() > thresholds.limit();
+```
+
 ### 3.3 闭包与变量捕获机制
 
 Lambda 捕获外部变量时，Java 要求这些变量必须是 **effectively final**。这一限制源于闭包的实现机制——捕获的变量值被复制到运行时生成的类中，而非引用共享：
@@ -247,13 +258,13 @@ List<String> result = orders           // 数据源
 
 ### 4.2 管道融合（Pipeline Fusion）机制
 
-Stream API 最核心的性能优化是**管道融合**。当多个中间操作被链式调用时，JVM 不会为每个操作创建中间集合，而是构建一个融合的 `Sink` 链，每个元素一次性流过所有阶段：
+Stream API 最核心的性能优化是**管道融合**。当多个中间操作被链式调用时，JVM 不会为每个操作创建中间集合（准确地说：不产生中间的 Stream 结果集合；`distinct`、`sorted` 等有状态算子仍会分配各自的内部缓冲，见 8.1 节），而是构建一个融合的 `Sink` 链，每个元素一次性流过所有阶段：
 
 ```
 传统循环（4 次遍历 + 4 个中间集合）:
 orders -> [filter] -> FilteredList -> [map] -> EmailList -> [filter@] -> DomainList -> [distinct] -> Result
 
-Stream 管道融合（1 次遍历 + 0 个中间集合）:
+Stream 管道融合（1 次遍历 + 0 个中间结果集合）:
 orders -> filter -> map -> filter@ -> distinct -> Result
          |-------- 融合为单次遍历 --------|
 ```
@@ -289,10 +300,10 @@ Optional<Order> firstLargeOrder = orders.stream()
 boolean hasExpedited = orders.stream()
     .anyMatch(o -> o.getShippingType() == ShippingType.EXPEDITED);
 
-// limit：处理足够数量即停止
+// limit：短路中间操作，接收足够数量后停止向下游推送
 List<Order> top10 = orders.stream()
     .sorted(Comparator.comparing(Order::getAmount).reversed())
-    .limit(10)  // 中间操作，但配合 sorted 时触发短路
+    .limit(10)  // 短路的是下游推送，sorted 仍需全量消费上游；只要前 N 个应考虑 PriorityQueue（见 8.1 节）
     .toList();
 ```
 
@@ -616,6 +627,66 @@ public class DataProcessor {
 }
 ```
 
+### 6.6 从模式重构到领域重构：ADT 与纯函数聚合
+
+前五节的重构都发生在"类的方法内部"——用函数参数替换策略对象、用 `Consumer` 替换建造者。函数式编程对 OOP 更深层的反哺，发生在**领域模型本身的结构**上：将不可变模型建模为代数数据类型（Algebraic Data Type, ADT），将行为建模为纯函数——《函数响应式领域建模》的两条核心原则。Java 的 sealed interface（和类型，表达"或"）+ record（积类型，表达"与"）+ switch 模式匹配（穷举解构），已经足以在语言层面原生表达这套范式，无需引入额外依赖——这也与 Java 社区倡导的 Data-Oriented Programming 实践一致。
+
+**（a）用 ADT 建模领域状态机**
+
+以订单工作流为例，状态全集由 sealed interface 封闭，每个状态是一个携带"存在证据"的 record：
+
+```java
+// 和类型：订单状态的全集是封闭的，新增状态必须修改 permits 列表
+sealed interface OrderState permits Unvalidated, Validated, Priced {}
+
+// 积类型：每个状态的组件就是"处于该状态"必须成立的证据
+record Unvalidated(String rawJson) implements OrderState {}
+record Validated(List<OrderLine> lines, Address addr) implements OrderState {}
+record Priced(Validated validated, BigDecimal total) implements OrderState {}
+
+record OrderLine(String sku, int quantity, BigDecimal unitPrice) {}
+```
+
+对比"一个 Order 类 + 一个 status 枚举 + 一堆可空字段"的传统建模：ADT 把不变式编码进类型——拿到一个 `Priced`，就必然意味着它已有地址、行项目和总价，"已定价但没有收货地址"这样的非法状态不可表示。状态迁移则是一次普通的纯函数计算：
+
+```java
+// Validated -> Priced：纯函数，无副作用
+static Priced price(Validated validated) {
+    BigDecimal total = validated.lines().stream()
+        .map(line -> line.unitPrice().multiply(BigDecimal.valueOf(line.quantity())))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    return new Priced(validated, total);
+}
+```
+
+**（b）用 Decider 表达聚合的纯函数核心**
+
+OOP 聚合的方法把"命令进来 → 修改状态 → 发布事件"折叠进一个可变过程；函数式的等价做法是把它拆成两个显式的纯函数。社区组件 fraktalio/fmodel-java 的 Decider 就是这一思想的最小实现：
+
+```java
+public record Decider<C, S, E>(
+    BiFunction<C, S, List<E>> decide,  // 决策：命令 + 当前状态 → 要发布的事件
+    BiFunction<S, E, S> evolve,        // 演进：当前状态 + 事件 → 新状态
+    Supplier<S> initialState           // 初始状态
+) {}
+```
+
+`evolve` 就是本文反复出现的 `reduce` 折叠——把历史事件逐个应用到初始状态；`decide` 是建立在折叠结果之上的决策函数。聚合的完整处理逻辑因此可以写成一个纯函数：
+
+```java
+static <C, S, E> List<E> handle(Decider<C, S, E> decider, List<E> history, C command) {
+    // 折叠事件历史得到当前状态。元素类型 E 与状态类型 S 不同，
+    // 无法用 2 参数 reduce，必须用 3 参数版本（与 7.2 节同理）；
+    // 顺序流下 combiner 不会被调用
+    S state = history.stream()
+        .reduce(decider.initialState().get(), decider.evolve()::apply, (a, b) -> a);
+    // 在当前状态上做纯决策
+    return decider.decide().apply(command, state);
+}
+```
+
+Decider 是领域层的纯组件：不落库、不发消息、不感知任何框架，因此可以对其做完全穷举的单元测试（给定命令与状态，断言产生的事件）。持久化、消息发布等副作用被推到外层——这正是 7.1 节将展开的"函数式核心，命令式外壳"分层。
+
 ---
 
 ## 7. 企业级实战：完整的代码案例
@@ -725,6 +796,18 @@ public class OrderProcessingService {
 }
 ```
 
+**函数式核心，命令式外壳**
+
+上面的 `OrderProcessingService` 用管道编排了全流程，但领域纯逻辑（校验、小计计算）与副作用（库存扣减、通知发送）仍交织在同一个类中。更彻底的函数式实践是为两者划出明确边界——**functional core, imperative shell**：
+
+| 层 | 内容 | 约束 |
+|------|------|------|
+| 领域层 | ADT + 纯函数（状态迁移、定价规则、Decider，见 6.6 节） | 零 Spring / JPA / Kafka 依赖，可完全穷举测试 |
+| 应用层 | 用 Result / Either 组合领域函数，编排副作用：加载状态 → 调用领域 → 持久化 → 发布事件 | 依赖领域层与输出端口 |
+| 适配器层 | Controller / Repository / Message Listener | 依赖应用层 |
+
+这一分层正是《函数响应式领域建模》"分离纯函数与副作用"原则的落地：领域层的每个决策都是可穷举、可重放的纯计算（用 6.6 节的 ADT 与 Decider 表达），I/O 被推向应用层与适配器层组成的外壳。本节的管道与 7.3 节的 Result 类型，正是应用层组合领域函数的工具。
+
 ### 7.2 案例二：配置驱动的规则引擎
 
 利用函数式接口构建轻量级规则引擎，避免引入 Drools 等重型框架：
@@ -772,10 +855,14 @@ public class PricingRuleEngine {
             .filter(rule -> rule.condition().test(order))
             .peek(rule -> log.debug("Applying rule: {}", rule.name()))
             .map(PricingRule::modifier)
+            // 流元素类型（UnaryOperator<BigDecimal>）与累积类型（BigDecimal）不同，
+            // 无法用 2 参数 reduce（其 accumulator 必须是 BinaryOperator<T>），必须走 3 参数版本；
+            // combiner 丢弃右侧结果，仅在顺序流下安全——若要并行应用规则，
+            // 修饰函数必须可交换，并提供能真正合并部分结果的 combiner
             .reduce(
                 baseAmount,
                 (amount, modifier) -> modifier.apply(amount),
-                (a, b) -> a  // 顺序执行，combiner 不会被调用
+                (a, b) -> a
             );
     }
 }
@@ -794,15 +881,17 @@ public sealed interface Result<T, E> permits Result.Success, Result.Failure {
     // 函数式转换
     default <R> Result<R, E> map(Function<T, R> mapper) {
         return switch (this) {
-            case Success<T, E>(var value) -> new Success<>(mapper.apply(value));
-            case Failure<T, E>(var error) -> new Failure<>(error);
+            // 显式写出类型参数：E 是 phantom type（不出现在构造参数中），
+            // diamond 在嵌套推断场景下无法可靠补全 E
+            case Success<T, E>(var value) -> new Success<R, E>(mapper.apply(value));
+            case Failure<T, E>(var error) -> new Failure<R, E>(error);
         };
     }
 
     default <R> Result<R, E> flatMap(Function<T, Result<R, E>> mapper) {
         return switch (this) {
             case Success<T, E>(var value) -> mapper.apply(value);
-            case Failure<T, E>(var error) -> new Failure<>(error);
+            case Failure<T, E>(var error) -> new Failure<R, E>(error);
         };
     }
 
@@ -823,6 +912,39 @@ public Result<PaymentResponse, PaymentError> processPayment(PaymentRequest reque
         .map(this::enrichResponse);                         // Result<PaymentResponse, PaymentError>
 }
 ```
+
+**把 E 升级为 ADT 错误谱系**
+
+上面的 `E` 还是一个开放泛型——塞 `String` 还是 `Exception` 都能编译，错误形态对类型系统不可见。结合 6.6 节的 ADT 原则，可以为支付领域定义一个**可穷举的错误代数**：
+
+```java
+sealed interface PaymentError {
+    record InsufficientFunds(BigDecimal required, BigDecimal available) implements PaymentError {}
+    record AccountBlocked(String reason) implements PaymentError {}
+    record GatewayTimeout(Duration elapsed) implements PaymentError {}
+}
+```
+
+于是 `Result<PaymentResponse, PaymentError>` 中承载失败的 `E` 不再是 `String` 或 `Exception` 这样的无结构占位，而是一个编译器检查完整性、模式匹配可穷举的错误谱系——处理方在 switch 中漏掉任何一种失败形态都无法通过编译。与上面的 flatMap 管道结合，构成"类型驱动的业务错误处理链"：
+
+```java
+String message = switch (result) {
+    case Result.Success(var resp) ->
+        "支付成功：" + resp.transactionId();
+    case Result.Failure(PaymentError.InsufficientFunds(var required, var available)) ->
+        "余额不足：需要 " + required + "，可用 " + available;
+    case Result.Failure(PaymentError.AccountBlocked(var reason)) ->
+        "账户被冻结：" + reason;
+    case Result.Failure(PaymentError.GatewayTimeout(var elapsed)) ->
+        "支付网关超时：" + elapsed.toMillis() + "ms";
+};  // Result 与 PaymentError 均为 sealed，两层穷举后无需 default 分支
+```
+
+嵌套的 record 解构（`Result.Failure(PaymentError.InsufficientFunds(...))`）展示了 sealed + record + 模式匹配三件套的威力：一次 switch 同时完成"打开 Result"与"打开错误"两层分解，且编译器保证不遗漏任何失败形态。
+
+**Vavr 是可选项，不是前提**
+
+Vavr 提供了成熟的 `Either` / `Validation` 实现（`Validation` 支持错误累积而非快速失败），适合不想手写组合子时直接引入。但如上所示，Java 原生的 sealed interface + 手写 `Result` 已足以覆盖大部分场景——库是语法糖加速器，范式不依赖它。
 
 ---
 
@@ -972,21 +1094,25 @@ public String describe(Object obj) {
 
 ### 9.3 Scoped Values 与结构化并发
 
-Java 21 引入（preview）的 Scoped Values 和结构化并发（Structured Concurrency），在 Java 25 正式转正（JEP 505 / 506），为函数式并发编程提供了更安全的上下文传播机制：
+Java 21 引入（preview）的 Scoped Values 与结构化并发（Structured Concurrency）在 Java 25 走向了不同的成熟度：**Scoped Values 已由 JEP 506 正式转正；结构化并发仍处于 JEP 505 的第五次预览**。前者为函数式并发提供了安全的上下文传播机制，后者的 API 在 JEP 505 中经历了破坏性重构，写法与早期预览版已有本质区别：
+
+- 构造器与 `ShutdownOnFailure` / `ShutdownOnSuccess` 子类已被移除，改用静态工厂 `open()`（无参版本即快速失败模式，等价于旧的 `ShutdownOnFailure`）或 `open(Joiner)` 定制汇合策略；
+- `join()` 不再返回 `void`：旧版需要额外调用 `throwIfFailed()` 传播异常，新版 `join()` 直接返回 `Joiner` 的结果，任一子任务失败时取消其余子任务并抛出 `StructuredTaskScope.FailedException`——`throwIfFailed()` 已被删除。
 
 ```java
-// Scoped Values：函数式上下文传播（替代 ThreadLocal）
+// Scoped Values：函数式上下文传播（替代 ThreadLocal，JEP 506 已转正）
 private static final ScopedValue<String> REQUEST_ID = ScopedValue.newInstance();
 
-public Response handleRequest(Request request) {
+public Response handleRequest(Request request) throws Exception {
     return ScopedValue.where(REQUEST_ID, request.getId()).call(() -> {
-        // 所有异步操作都可以访问 REQUEST_ID
-        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            // Java 24 起 fork 返回 Subtask（Java 25 由 JEP 505 转正）：join 完成后用 get() 取值
+        // 作用域内（含结构化并发的子任务）都可以访问 REQUEST_ID
+        // 结构化并发：JEP 505（Java 25 第五次预览，需 --enable-preview）
+        try (var scope = StructuredTaskScope.open()) {
+            // fork 返回 Subtask，join 之后用 get() 取值
             Subtask<User> user = scope.fork(() -> userService.findById(request.getUserId()));
             Subtask<List<Order>> orders = scope.fork(() -> orderService.findByUser(request.getUserId()));
 
-            scope.join().throwIfFailed();
+            scope.join();  // 任一子任务失败：取消其余子任务并抛出 FailedException
             return new Response(user.get(), orders.get());
         }
     });
@@ -1004,7 +1130,7 @@ public Response handleRequest(Request request) {
 1. **Lambda 的底层机制**：通过 `invokedynamic` 实现，相比匿名内部类具有更好的性能和 JVM 优化空间
 2. **Stream 的管道融合**：理解 `Sink` 链和惰性求值机制，避免中间集合分配
 3. **Optional 的正确使用**：作为返回类型明确表达空值可能性，避免过度包装
-4. **设计模式的函数式重构**：策略、模板方法、职责链等模式通过函数组合实现更灵活的解耦
+4. **设计模式的函数式重构与领域建模**：策略、模板方法、职责链等模式通过函数组合实现更灵活的解耦；ADT（sealed + record）与纯函数聚合（Decider）进一步让非法状态不可表示、错误谱系可穷举
 5. **性能意识**：原始类型流避免装箱、并行流的 NQ 决策模型、有状态操作的成本
 
 随着 Java 24 Stream Gatherers API 的推出，函数式编程在 Java 生态中的地位将进一步巩固。对于企业级 Java 开发者而言，深入掌握 FP 与 OOP 的融合技术，已不再是可选项，而是构建高质量、可维护系统的核心能力。
