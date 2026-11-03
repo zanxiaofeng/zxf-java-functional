@@ -326,7 +326,9 @@ public static <T> Collector<T, ?, Set<T>> toLinkedHashSet() {
         LinkedHashSet::new,           // supplier
         Set::add,                     // accumulator
         (left, right) -> { left.addAll(right); return left; },  // combiner
-        Collections::unmodifiableSet  // finisher
+        // finisher 不能写成方法引用 Collections::unmodifiableSet：
+        // 其类型参数无法在 Collector.of 的嵌套推断中确定，无法通过编译，需显式参数类型
+        (Set<T> set) -> Collections.unmodifiableSet(set)
     );
 }
 ```
