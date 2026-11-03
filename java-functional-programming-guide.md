@@ -346,6 +346,8 @@ long fastSum = IntStream.range(0, 1_000_000).sum();  // 无装箱，JIT 可优�
 
 在企业级系统中，处理数值聚合时应始终使用原始类型特化流，并通过 JMH 验证性能假设。
 
+> **延伸阅读**：JDK Stream 长期缺失的 `zip`、`foldLeft`、元组等操作，可由轻量库 jOOλ 补齐；jOOQ 的 `fetchStream()` 则能把数据库查询直接变成函数式管道的数据源。见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#32-jooλ给原生-stream-补齐的最后几块拼图) 3.2 与 4.3 节。
+
 ---
 
 ## 5. Optional 的设计哲学与企业级实践
@@ -591,6 +593,8 @@ List<String> errors = ValidationChain.validate(order,
 );
 ```
 
+> **延伸阅读**：Vavr 的 `Validation` 为这种"错误累积"模式提供了现成实现（`Validation.combine(...).ap(...)`）。见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#31-vavr最完整的函数式工具箱) 3.1 节。
+
 ### 6.5 模板方法模式的函数式替代
 
 模板方法模式定义算法骨架，子类实现具体步骤。FP 版本通过函数参数实现相同效果，无需继承：
@@ -686,6 +690,8 @@ static <C, S, E> List<E> handle(Decider<C, S, E> decider, List<E> history, C com
 ```
 
 Decider 是领域层的纯组件：不落库、不发消息、不感知任何框架，因此可以对其做完全穷举的单元测试（给定命令与状态，断言产生的事件）。持久化、消息发布等副作用被推到外层——这正是 7.1 节将展开的"函数式核心，命令式外壳"分层。
+
+> **延伸阅读**：fmodel-java 的真实现状（experimental、未发布到 Maven Central）、`combine` / `dimapState` 等组合子、Given-When-Then 测试 DSL，以及与它共享同一 domain 包的 fmodel-spring-demo 对照实验，见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#41-fmodel-javadecider-思想的直接实现) 4.1 节。
 
 ---
 
@@ -807,6 +813,8 @@ public class OrderProcessingService {
 | 适配器层 | Controller / Repository / Message Listener | 依赖应用层 |
 
 这一分层正是《函数响应式领域建模》"分离纯函数与副作用"原则的落地：领域层的每个决策都是可穷举、可重放的纯计算（用 6.6 节的 ADT 与 Decider 表达），I/O 被推向应用层与适配器层组成的外壳。本节的管道与 7.3 节的 Result 类型，正是应用层组合领域函数的工具。
+
+> **延伸阅读**：一个完整的"领域纯函数 + Spring 外壳"参考实现（Java 25 + Spring Boot + Vavr，六边形架构，domain 层零 Spring 依赖），见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#51-functional_domain_modeling_in_java一本书的-java-25-移植) 5.1 节。
 
 ### 7.2 案例二：配置驱动的规则引擎
 
@@ -945,6 +953,8 @@ String message = switch (result) {
 **Vavr 是可选项，不是前提**
 
 Vavr 提供了成熟的 `Either` / `Validation` 实现（`Validation` 支持错误累积而非快速失败），适合不想手写组合子时直接引入。但如上所示，Java 原生的 sealed interface + 手写 `Result` 已足以覆盖大部分场景——库是语法糖加速器，范式不依赖它。
+
+> **延伸阅读**：`Try` 的异常捕获管道、面向 Java 25 的轻量替代 Pragmatica core，以及用 `Either` 实践 Railway Oriented Programming 的完整参照项目，见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#52-resilience-wallet-ledgereither-修的铁路在真实约束下怎么铺) 3.1、3.3 与 5.2 节。
 
 ---
 
