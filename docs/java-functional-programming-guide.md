@@ -8,7 +8,7 @@
 - [4. Stream API 的管道机制与内部实现原理](#4-stream-api-的管道机制与内部实现原理)
 - [5. Optional 的设计哲学与企业级实践](#5-optional-的设计哲学与企业级实践)
 - [6. FP 与 OOP 的融合设计模式](#6-fp-与-oop-的融合设计模式)
-- [7. 企业级实战：完整的代码案例](#7-企业级实战完整的代码案例)
+- [7. 综合示例：三个概念演示](#7-综合示例三个概念演示)
 - [8. 性能考量与生产环境最佳实践](#8-性能考量与生产环境最佳实践)
 - [9. 近期演进：Java 24/25 与 Stream API 的演进](#9-近期演进java-2425-与-stream-api-的演进)
 - [10. 总结](#10-总结)
@@ -118,7 +118,7 @@ List<String> result = orders.stream()
 
 ### 2.3 函数式编程与面向对象编程的范式对比
 
-| 维度 | 函数式编程 | 面向对象编程 |
+| 维度 | FP 常见倾向 | OOP 常见倾向 |
 |------|-----------|-------------|
 | 核心抽象 | 函数（数据转换） | 对象（状态与行为封装） |
 | 状态管理 | 不可变数据，无共享状态 | 可变状态，对象封装 |
@@ -128,7 +128,7 @@ List<String> result = orders.stream()
 | 错误处理 | 显式返回（Either / Result；Optional 仅表达值缺失，不承载失败语义） | 异常抛出 |
 | 适用场景 | 数据转换、并发、事件流 | 业务建模、状态机、UI |
 
-理解这张对比表至关重要：**FP 和 OOP 不是对立关系，而是互补关系**。在企业级 Java 系统中，对象负责建模业务实体和封装状态，函数负责定义数据转换逻辑——这种混合范式正是现代 Java 架构的精髓。
+上表是两类范式的**常见倾向**对照，不是硬性绑定——OOP 系统同样可以采用不可变对象与显式结果类型，FP 实现内部也可能使用可变缓存。理解这一点至关重要：**FP 和 OOP 不是对立关系，而是互补关系**。在企业级 Java 系统中，对象负责建模业务实体和封装状态，函数负责定义数据转换逻辑——这种混合范式正是现代 Java 架构的精髓。
 
 ---
 
@@ -197,7 +197,7 @@ users.stream().map(User::getName)
 users.stream().map(user -> user.getName() + " (VIP)")
 ```
 
-不过生产环境中更值得关注的区分是**是否捕获变量**：不捕获任何变量（也不捕获 `this`）的 Lambda 与方法引用，同一调用点的每次求值通常返回**同一个缓存实例**；而捕获了外部变量的 Lambda，每次求值都会创建一个新实例（JIT 逃逸分析可能将其消除，但不应依赖）。在每秒创建百万级 Lambda 实例的热点管道中，这一差异才是比"方法引用还是 Lambda"更实质的分配压力来源：
+不过生产环境中更值得关注的区分是**是否捕获变量**：不捕获任何变量（也不捕获 `this`）的 Lambda 与方法引用，同一调用点的每次求值通常返回**同一个缓存实例**；而捕获了外部变量的 Lambda，每次求值都会创建一个新实例（JIT 逃逸分析可能将其消除，但不应依赖）。需要强调：这是当前 HotSpot 的典型实现行为，而非语言规范的保证——Lambda 实例的对象身份本就不稳定，无论"拿到同一实例"还是"必然新建"都不应被程序依赖（典型反例：用 `==` 比较 Lambda）。在每秒创建百万级 Lambda 实例的热点管道中，这一差异才是比"方法引用还是 Lambda"更实质的分配压力来源：
 
 ```java
 // 无捕获：实例可缓存复用，每次求值拿到的是同一个对象
@@ -222,16 +222,15 @@ Predicate<Order> highValueFilter = order -> order.getAmount() > threshold;
 // threshold = 200;
 ```
 
-对于并发场景，这一设计实际上是一个安全特性——它防止了闭包中的数据竞争。如果需要共享可变状态，应使用原子类或显式的并发集合：
+需要澄清一个常见误解：effectively final **并不保证闭包的线程安全**。它保证的只是捕获变量本身不再被重新赋值——捕获引用类型时复制的是引用值，变量不再变，但它指向的**对象内部仍可能可变**；实例字段也完全不受局部变量的 effectively final 规则约束。Lambda 与其他线程共享可变对象时，数据竞争依然存在。更契合函数式的思路是让共享可变状态消失——用声明式聚合替代可变累计：
 
 ```java
-AtomicInteger counter = new AtomicInteger(0);
+// 无共享可变状态，天然线程安全
+long completedCount = orders.parallelStream()
+    .filter(order -> order.getStatus() == Status.COMPLETED)
+    .count();
 
-orders.parallelStream().forEach(order -> {
-    if (order.getStatus() == Status.COMPLETED) {
-        counter.incrementAndGet();  // 线程安全的原子操作
-    }
-});
+// 确实需要共享可变计数等场景，才引入原子类或并发集合
 ```
 
 ---
@@ -258,16 +257,18 @@ List<String> result = orders           // 数据源
 
 ### 4.2 管道融合（Pipeline Fusion）机制
 
-Stream API 最核心的性能优化是**管道融合**。当多个中间操作被链式调用时，JVM 不会为每个操作创建中间集合（准确地说：不产生中间的 Stream 结果集合；`distinct`、`sorted` 等有状态算子仍会分配各自的内部缓冲，见 8.1 节），而是构建一个融合的 `Sink` 链，每个元素一次性流过所有阶段：
+Stream API 最核心的性能优化是**管道融合**。当多个中间操作被链式调用时，Stream 实现（这是 JDK 类库层面的机制，而非 JVM 优化）不会为每个操作创建中间集合（准确地说：不产生中间的 Stream 结果集合；`distinct`、`sorted` 等有状态算子仍会分配各自的内部缓冲，见 8.1 节），而是构建一个融合的 `Sink` 链，每个元素一次性流过所有阶段：
 
 ```
-传统循环（4 次遍历 + 4 个中间集合）:
+逐操作实现（每步一次遍历 + 一个中间集合）:
 orders -> [filter] -> FilteredList -> [map] -> EmailList -> [filter@] -> DomainList -> [distinct] -> Result
 
 Stream 管道融合（1 次遍历 + 0 个中间结果集合）:
 orders -> filter -> map -> filter@ -> distinct -> Result
          |-------- 融合为单次遍历 --------|
 ```
+
+注意上图左侧说的是"把每个步骤写成独立的整趟循环"——手写单趟循环同样可以在一次遍历里完成全部步骤，融合并非 Stream 的专利；Stream 的价值在于把融合变成**库的自动保证**，而手工融合的管道在维护中很容易退化成左图形态。
 
 实现原理：`ReferencePipeline` 类通过 `opWrapSink` 方法将每个中间操作包装为一个 `Sink` 实例，形成责任链模式。当终止操作请求元素时，数据从源端推入（push model），依次经过每个 Sink 的处理：
 
@@ -283,7 +284,8 @@ sink1.begin(orders.size());      // 整轮遍历只调用一次
 for (Order order : orders) {
     sink1.accept(order);  // 元素流过所有阶段
 }
-sink1.end();                     // 整轮遍历只调用一次；有状态 Sink（如 sorted/distinct）在此刻才真正 flush/排序
+sink1.end();                     // 整轮遍历只调用一次；sorted 在此刻才排序并统一输出，
+                                 // distinct 则在 accept 时就已向下游放行首次出现的元素
 ```
 
 ### 4.3 惰性求值与短路操作
@@ -333,17 +335,21 @@ public static <T> Collector<T, ?, Set<T>> toLinkedHashSet() {
 }
 ```
 
+`teeing` 示例有两个值得注意的细节：空流时 `count` 为 0，`total / count` 在 double 语义下得到 `NaN` 而非异常——"无样本"时的结果语义需要在业务层显式处理（如先判空，或让平均值返回 `Optional<Double>`）；此外金额统计用 `double` 存在精度限制，生产环境的金额应使用 `BigDecimal`（本文 6.5 节有类型口径说明）。
+
 ### 4.5 原始类型特化流
 
 `Stream<T>` 对原始类型的装箱（Boxing）是 Stream API 最大的性能陷阱。`IntStream`、`LongStream`、`DoubleStream` 通过避免装箱提供显著的性能提升（视场景可达数倍）：
 
 ```java
-// 性能陷阱：Stream<Integer> 每次迭代都创建 Integer 对象
+// 性能陷阱：装箱发生在 boxed() 构建阶段；此后遍历 List<Integer> 承担的是拆箱与对象间接访问成本
 List<Integer> numbers = IntStream.range(0, 1_000_000).boxed().toList();
 long slowSum = numbers.stream().mapToLong(Integer::longValue).sum();  // 大量对象分配
 
-// 正确做法：直接使用原始类型流
-long fastSum = IntStream.range(0, 1_000_000).sum();  // 无装箱，JIT 可优化为寄存器操作
+// 正确做法：直接使用原始类型流。
+// 注意：IntStream.sum() 按 int 累加，0 加到 999,999 会溢出
+// （得到 1,783,293,664 而非 499,999,500,000）——结果可能超出 int 范围时先 asLongStream()
+long fastSum = IntStream.range(0, 1_000_000).asLongStream().sum();  // 无装箱，long 累加，与 8.1 节统一
 ```
 
 在企业级系统中，处理数值聚合时应始终使用原始类型特化流，并通过 JMH 验证性能假设。
@@ -386,7 +392,8 @@ String cityName = orderService.findById(orderId)
     .filter(city -> !city.isBlank())
     .orElse("Unknown");
 
-// 等效的命令式代码（深层嵌套，难以维护）
+// 命令式改写（对应 findById 直接返回 null 的旧式 API——与上面是两套 API 的对照，
+// 深层嵌套，难以维护）
 String cityName = "Unknown";
 Order order = orderService.findById(orderId);
 if (order != null) {
@@ -421,6 +428,8 @@ Order order = orderRepository.findById(orderId)
         "Order not found for processing: " + orderId));
 ```
 
+`safeReadFile` 的写法有一条严格的适用边界：它把"读取失败"与"文件不存在"压成同一种 `Optional.empty()`——**调用方无法区分两者**。这只在"读取失败即可安全地当作不存在"的场景成立（如可选的缓存文件、尽力而为的增强数据）；2.3 节已强调过 Optional 仅表达值缺失、不承载失败语义，一旦调用方需要知道失败原因，正确工具是异常或 `Result`（见 7.3 节），而不是把 IOException 静默吞成空值。
+
 ### 5.4 Optional 在 Stream 中的使用模式
 
 Optional 与 Stream 的组合使用是 Java FP 中非常强大的模式：
@@ -434,12 +443,14 @@ List<String> validEmails = userIds.stream()
     .filter(Objects::nonNull)
     .toList();
 
-// 替代方案：先过滤再映射
+// 替代方案：先过滤再映射（注意仍需 filter(Objects::nonNull)：
+// 若 getEmail 可能返回 null，缺少这一步，两段代码的结果并不相同）
 List<String> validEmails = userIds.stream()
     .map(userService::findById)
     .filter(Optional::isPresent)
     .map(Optional::get)
     .map(User::getEmail)
+    .filter(Objects::nonNull)
     .toList();
 ```
 
@@ -483,6 +494,8 @@ BigDecimal finalPrice = pricing.calculateFinalPrice(
 );
 ```
 
+值得说明的是，**领域接口与函数化并不冲突**：`DiscountStrategy` 本身就是函数式接口，可以直接用 Lambda 实现（`DiscountStrategy vip = amount -> amount.multiply(new BigDecimal("0.85"));`）。上例的化简适用于"抽象恰好就是一个单参函数"的场景；当接口名承载领域语义、存在多个可选实现、或需要文档与发现性时，更好的结论是：**保留有命名的领域接口，用 Lambda 消除实现样板**，而不是把所有领域抽象都替换成 `UnaryOperator<BigDecimal>` 这样的通用函数类型。
+
 ### 6.2 建造者模式的函数式演进
 
 传统建造者模式在 Java 中往往导致冗长的代码。函数式建造者通过 `Consumer` 实现了更灵活的配置方式：
@@ -514,7 +527,8 @@ public class HttpRequestBuilder {
     public HttpRequestBuilder timeout(Duration timeout) { this.timeout = timeout; return this; }
 
     public HttpRequest build() {
-        return new HttpRequest(url, headers, body, timeout);
+        // 防御性复制：builder 仍是可变对象，build 之后再次修改它不应影响已构建的请求
+        return new HttpRequest(url, Map.copyOf(headers), body, timeout);
     }
 }
 
@@ -526,6 +540,8 @@ HttpRequest request = HttpRequestBuilder.builder()
                 .timeout(Duration.ofSeconds(10)))
     .build();
 ```
+
+两点边界值得说明：函数式建造者**并未消除"可变配置对象"**——`with(Consumer)` 只是在建造过程之上增加了一个高阶函数入口，builder 本身仍是可变的；不可变性保障从 `build()` 的防御性复制（`Map.copyOf(headers)`，顺带拒绝后续修改）才开始。它换来的是配置入口的灵活分组与复用，而不是彻底不可变的构建过程。
 
 ### 6.3 访问者模式的 Lambda 化
 
@@ -552,6 +568,8 @@ public class DocumentRenderer {
     private String renderUnknown(Document doc) { throw new UnsupportedOperationException(); }
 }
 ```
+
+这个实现的边界：它是**运行时**类型分发表——新增文档类型不会有任何编译期提示，只会静默落到 `renderUnknown`；`getClass()` 是精确匹配，只注册 `PdfDocument` 查不到其子类实例，对代理对象同样不友好；它也不具备传统 Visitor 借助重载解析、或 sealed switch（见 6.6 节）那样的编译期穷举检查。类型集合开放、需要运行时注册扩展时用它；类型集合可以封闭时，sealed + switch 模式匹配是更安全的选择。
 
 ### 6.4 校验管道（Validation Pipeline）的函数式实现
 
@@ -645,15 +663,32 @@ public class DataProcessor {
 // 和类型：订单状态的全集是封闭的，新增状态必须修改 permits 列表
 sealed interface OrderState permits Unvalidated, Validated, Priced {}
 
-// 积类型：每个状态的组件就是"处于该状态"必须成立的证据
-record Unvalidated(String rawJson) implements OrderState {}
-record Validated(List<OrderLine> lines, Address addr) implements OrderState {}
-record Priced(Validated validated, BigDecimal total) implements OrderState {}
-
-record OrderLine(String sku, int quantity, BigDecimal unitPrice) {}
+// 积类型：组件即"处于该状态"的证据；紧凑构造器把领域约束固化为构造时断言
+record Unvalidated(String rawJson) implements OrderState {
+    Unvalidated { Objects.requireNonNull(rawJson, "rawJson"); }
+}
+record Validated(List<OrderLine> lines, Address addr) implements OrderState {
+    Validated {
+        Objects.requireNonNull(addr, "addr");
+        lines = List.copyOf(lines);  // 防御性复制：切断外部可变引用，并拒绝 null 元素
+    }
+}
+record Priced(Validated validated, BigDecimal total) implements OrderState {
+    Priced {
+        Objects.requireNonNull(validated, "validated");
+        Objects.requireNonNull(total, "total");
+    }
+}
+record OrderLine(String sku, int quantity, BigDecimal unitPrice) {
+    OrderLine {
+        Objects.requireNonNull(sku, "sku");
+        Objects.requireNonNull(unitPrice, "unitPrice");
+        if (quantity <= 0) throw new IllegalArgumentException("quantity must be positive: " + quantity);
+    }
+}
 ```
 
-对比"一个 Order 类 + 一个 status 枚举 + 一堆可空字段"的传统建模：ADT 把不变式编码进类型——拿到一个 `Priced`，就必然意味着它已有地址、行项目和总价，"已定价但没有收货地址"这样的非法状态不可表示。状态迁移则是一次普通的纯函数计算：
+对比"一个 Order 类 + 一个 status 枚举 + 一堆可空字段"的传统建模：ADT 把不变式编码进类型——拿到一个 `Priced`，就必然意味着它已有通过校验的地址与行项目、非空的总价，"已定价但没有收货地址"这样的非法状态不可表示。但这里有一个容易过度承诺的细节：**sealed 只封闭子类型集合，record 只固定组件引用（浅不可变）**——没有紧凑构造器时 `new Validated(null, null)` 完全合法，外部修改传入的 `List` 也会让"已验证状态"悄悄改变。"非法状态不可表示"不是 sealed + record 自动赠送的，而是由**构造时校验 + 防御性复制 + 组件自身不可变**（`Address` 应同样是不可变 record）共同建立的；状态迁移的入口也应收敛到唯一构造路径。状态迁移则是一次普通的纯函数计算：
 
 ```java
 // Validated -> Priced：纯函数，无副作用
@@ -677,31 +712,36 @@ public record Decider<C, S, E>(
 ) {}
 ```
 
-`evolve` 就是本文反复出现的 `reduce` 折叠——把历史事件逐个应用到初始状态；`decide` 是建立在折叠结果之上的决策函数。聚合的完整处理逻辑因此可以写成一个纯函数：
+`evolve` 就是本文反复出现的折叠（fold）——把历史事件逐个应用到初始状态；`decide` 是建立在折叠结果之上的决策函数。聚合的完整处理逻辑因此可以写成一个纯函数：
 
 ```java
 static <C, S, E> List<E> handle(Decider<C, S, E> decider, List<E> history, C command) {
-    // 折叠事件历史得到当前状态。元素类型 E 与状态类型 S 不同，
-    // 无法用 2 参数 reduce，必须用 3 参数版本（与 7.2 节同理）；
-    // 顺序流下 combiner 不会被调用
-    S state = history.stream()
-        .reduce(decider.initialState().get(), decider.evolve()::apply, (a, b) -> a);
+    // 折叠事件历史得到当前状态：一个保持顺序的左折叠。
+    // 修改方法内的局部变量，不妨碍函数对外保持纯净
+    S state = decider.initialState().get();
+    for (E event : history) {
+        state = decider.evolve().apply(state, event);
+    }
     // 在当前状态上做纯决策
     return decider.decide().apply(command, state);
 }
 ```
 
-Decider 是领域层的纯组件：不落库、不发消息、不感知任何框架，因此可以对其做完全穷举的单元测试（给定命令与状态，断言产生的事件）。持久化、消息发布等副作用被推到外层——这正是 7.1 节将展开的"函数式核心，命令式外壳"分层。
+**为什么是循环而不是 `Stream.reduce`？** 元素类型 `E` 与状态类型 `S` 不同，语法上确实只能走 3 参数的 `reduce(identity, accumulator, combiner)`——但它的契约要求 combiner 能正确**合并并行产生的部分结果**（并满足 `combiner.apply(u, identity)` 等于 `u` 的兼容性）。事件重放的状态由事件顺序决定，两个"重放到一半"的状态之间不存在通用的合并函数；偷懒写 `(a, b) -> a` 看似只是"声明不支持并行"，实际是违反契约——顺序流下结果正确，只因为当前实现恰好不调用 combiner，一旦并行执行，部分结果会被静默丢弃（7.2 节有实测对照）。另注：**保持 encounter order 的归约并不要求交换律，要求的是结合律与契约兼容**；而依赖先后顺序的折叠本质上不可并行，用显式循环（或 Java 24+ 的 `Gatherers.fold`，见 9.1 节）表达这一约束，比写一个不可能满足契约的 combiner 诚实得多。
+
+Decider 是领域层的纯组件：不落库、不发消息、不感知任何框架，因此可以对其做确定性的单元测试——给定命令与状态，断言产生的事件。注意"穷举"的准确边界：sealed 的**类型分支**可以穷举；命令与事件的内容空间（金额、SKU、序列）通常巨大甚至无界，输入空间层面依靠的是可重放与性质测试，而非字面穷举。持久化、消息发布等副作用被推到外层——这正是 7.1 节将展开的"函数式核心，命令式外壳"分层。
 
 > **延伸阅读**：fmodel-java 的真实现状（experimental、未发布到 Maven Central）、`combine` / `dimapState` 等组合子、Given-When-Then 测试 DSL，以及与它共享同一 domain 包的 fmodel-spring-demo 对照实验，见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#41-fmodel-javadecider-思想的直接实现) 4.1 节。
 
 ---
 
-## 7. 企业级实战：完整的代码案例
+## 7. 综合示例：三个概念演示
 
-### 7.1 案例一：电商订单处理管道
+> 三个示例相互独立，均为概念演示：重点在机制表达，不含持久化、幂等与补偿等生产前提（7.1 节末尾有编排边界说明）。
 
-以下是一个典型的电商订单处理场景，展示了 FP 与 OOP 的深度融合：
+### 7.1 示例一：电商订单处理管道（编排示意）
+
+以下是一个典型的电商订单处理场景，展示 FP 与 OOP 在编排层的配合：
 
 ```java
 @Service
@@ -712,58 +752,85 @@ public class OrderProcessingService {
     private final NotificationService notificationService;
     private final PricingService pricingService;
 
-    // 纯函数：订单验证逻辑，无副作用，易于单元测试
-    private static final Predicate<Order> isValidOrder = order ->
-        order != null 
-        && order.getItems() != null 
-        && !order.getItems().isEmpty()
-        && order.getCustomerId() != null;
+    // 校验：一次执行、返回结构化问题列表（空列表 = 有效）。
+    // "是否合法"与"为什么不合格"同源生成，不存在第二套错误描述规则（6.4 节校验管道的领域版）
+    private List<String> validateOrder(Order order) {
+        if (order == null) return List.of("null order");
+        List<String> issues = new ArrayList<>();
+        if (order.getCustomerId() == null) issues.add("missing customer ID");
+        List<OrderItem> items = order.getItems();
+        if (items == null || items.isEmpty()) {
+            issues.add("no items in order");
+            return issues;  // items 不存在时，逐项校验无从谈起
+        }
+        for (int i = 0; i < items.size(); i++) {
+            OrderItem item = items.get(i);
+            if (item == null) {
+                issues.add("item[" + i + "] is null");
+            } else if (item.getUnitPrice() == null) {
+                issues.add("item[" + i + "] (" + item.getSku() + "): missing unit price");
+            } else if (item.getQuantity() <= 0) {
+                issues.add("item[" + i + "] (" + item.getSku() + "): quantity must be positive");
+            } else if (item.getQuantity() > item.getAvailableStock()) {
+                issues.add("item[" + i + "] (" + item.getSku() + "): insufficient stock");
+            }
+        }
+        return issues;
+    }
 
-    private static final Predicate<OrderItem> hasStock = item ->
-        item.getQuantity() > 0 && item.getQuantity() <= item.getAvailableStock();
-
+    // 纯函数：小计计算。BigDecimal 加法满足结合律且 identity 正确，
+    // 这个 2 参数 reduce 是契约合法的
     private static final Function<Order, BigDecimal> calculateSubtotal = order ->
         order.getItems().stream()
             .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+    // 单笔处理结果：失败同样携带订单标识与原因，不会从批次结果中消失。
+    // 7.3 节将把这一"用类型表达失败"的模式泛化为通用 Result
+    private sealed interface OrderOutcome permits Succeeded, Failed {}
+    private record Succeeded(ProcessedOrder order) implements OrderOutcome {}
+    private record Failed(String orderId, String reason) implements OrderOutcome {}
+
     // 核心业务方法：声明式订单处理管道
     public ProcessingResult processOrderBatch(List<Order> orders) {
-        // 分组处理
-        Map<OrderStatus, List<Order>> categorized = orders.stream()
-            .collect(Collectors.groupingBy(this::categorizeOrder));
-
-        // 处理有效订单
-        List<ProcessedOrder> processed = Optional.ofNullable(categorized.get(OrderStatus.VALID))
-            .orElse(List.of())
-            .stream()
-            .map(this::processValidOrder)
-            .flatMap(Optional::stream)
+        // 校验一次，问题列表直接成为错误信息
+        record Checked(Order order, List<String> issues) {}
+        List<Checked> checked = orders.stream()
+            .map(order -> new Checked(order, validateOrder(order)))
             .toList();
 
-        // 收集错误
-        List<String> errors = Optional.ofNullable(categorized.get(OrderStatus.INVALID))
-            .orElse(List.of())
-            .stream()
-            .map(this::generateErrorMessage)
+        List<String> validationErrors = checked.stream()
+            .filter(c -> !c.issues().isEmpty())
+            .map(c -> "Order %s invalid: %s".formatted(c.order().getId(), String.join("; ", c.issues())))
             .toList();
 
-        return new ProcessingResult(processed, errors);
+        // 通过校验的订单才进入处理；处理失败（定价、库存保留等异常）以 Failed 形式保留
+        Map<Boolean, List<OrderOutcome>> outcomes = checked.stream()
+            .filter(c -> c.issues().isEmpty())
+            .map(c -> processValidOrder(c.order()))
+            .collect(Collectors.partitioningBy(o -> o instanceof Succeeded));
+
+        List<ProcessedOrder> processed = outcomes.get(true).stream()
+            .map(o -> (Succeeded) o)
+            .map(Succeeded::order)
+            .toList();
+        List<String> processingErrors = outcomes.get(false).stream()
+            .map(o -> (Failed) o)
+            .map(f -> "Order %s failed: %s".formatted(f.orderId(), f.reason()))
+            .toList();
+
+        List<String> errors = new ArrayList<>(validationErrors);
+        errors.addAll(processingErrors);
+        return new ProcessingResult(processed, List.copyOf(errors));
     }
 
-    private OrderStatus categorizeOrder(Order order) {
-        return isValidOrder.test(order) && order.getItems().stream().allMatch(hasStock)
-            ? OrderStatus.VALID 
-            : OrderStatus.INVALID;
-    }
-
-    private Optional<ProcessedOrder> processValidOrder(Order order) {
+    private OrderOutcome processValidOrder(Order order) {
         try {
             BigDecimal subtotal = calculateSubtotal.apply(order);
             BigDecimal finalPrice = pricingService.calculateFinalPrice(subtotal, order.getDiscountCode());
 
             inventoryService.reserveStock(order.getItems());
-            
+
             ProcessedOrder result = ProcessedOrder.builder()
                 .orderId(order.getId())
                 .subtotal(subtotal)
@@ -772,24 +839,13 @@ public class OrderProcessingService {
                 .build();
 
             notificationService.sendConfirmation(order.getCustomerId(), result);
-            return Optional.of(result);
+            return new Succeeded(result);
 
         } catch (InventoryException | PricingException e) {
+            // 失败不吞掉：带上订单标识进入批次结果，调用方可见
             log.error("Failed to process order: {}", order.getId(), e);
-            return Optional.empty();
+            return new Failed(order.getId(), e.getMessage());
         }
-    }
-
-    private String generateErrorMessage(Order order) {
-        List<String> issues = new ArrayList<>();
-        if (order == null) return "Null order encountered";
-        if (order.getItems() == null || order.getItems().isEmpty()) {
-            issues.add("No items in order");
-        }
-        if (order.getCustomerId() == null) {
-            issues.add("Missing customer ID");
-        }
-        return String.format("Order %s invalid: %s", order.getId(), String.join(", ", issues));
     }
 
     private ProcessedItem toProcessedItem(OrderItem item) {
@@ -799,10 +855,12 @@ public class OrderProcessingService {
             item.getUnitPrice()
         );
     }
-
-    private enum OrderStatus { VALID, INVALID }
 }
 ```
+
+这一版相对"`flatMap(Optional::stream)` 静默丢弃失败"写法的关键差异：**通过校验但处理失败（定价异常、库存保留失败）的订单，以 `Failed(orderId, reason)` 留在批次结果里**——调用方拿到完整的成功/失败清单，而不是只剩日志。校验也只有一套规则：`validateOrder` 同时产出"是否有效"与"为什么无效"，字段契约（customerId 非空、items 逐项非空且单价非空、数量为正且不超库存）全部落在一处，不会再出现"库存不足判为无效、错误信息却为空"这类两套规则各说各话的缝隙。
+
+> **编排边界**：本例止步于编排示意。`reserveStock` 与 `sendConfirmation` 之间没有事务保障——若通知抛出未捕获异常（`NotificationException` 不在 catch 列表中），库存已预留、同批次此前订单可能已产生不可逆副作用，重试还需避免重复预留与重复通知；注入的 `orderRepository` 也未展示订单持久化。Stream 与 `Result` 解决不了跨服务事务：生产实现需要持久化边界（如先落库、再异步通知）、幂等键与补偿/重试机制。
 
 **函数式核心，命令式外壳**
 
@@ -810,17 +868,17 @@ public class OrderProcessingService {
 
 | 层 | 内容 | 约束 |
 |------|------|------|
-| 领域层 | ADT + 纯函数（状态迁移、定价规则、Decider，见 6.6 节） | 零 Spring / JPA / Kafka 依赖，可完全穷举测试 |
+| 领域层 | ADT + 纯函数（状态迁移、定价规则、Decider，见 6.6 节） | 零 Spring / JPA / Kafka 依赖，可确定性测试 |
 | 应用层 | 用 Result / Either 组合领域函数，编排副作用：加载状态 → 调用领域 → 持久化 → 发布事件 | 依赖领域层与输出端口 |
 | 适配器层 | Controller / Repository / Message Listener | 依赖应用层 |
 
-这一分层正是《函数响应式领域建模》"分离纯函数与副作用"原则的落地：领域层的每个决策都是可穷举、可重放的纯计算（用 6.6 节的 ADT 与 Decider 表达），I/O 被推向应用层与适配器层组成的外壳。本节的管道与 7.3 节的 Result 类型，正是应用层组合领域函数的工具。
+这一分层正是《函数响应式领域建模》"分离纯函数与副作用"原则的落地：领域层的每个决策都是确定性、可重放的纯计算（用 6.6 节的 ADT 与 Decider 表达），I/O 被推向应用层与适配器层组成的外壳。本节的管道与 7.3 节将展开的通用 Result 类型，正是应用层组合领域函数的工具。
 
 > **延伸阅读**：一个完整的"领域纯函数 + Spring 外壳"参考实现（Java 25 + Spring Boot + Vavr，六边形架构，domain 层零 Spring 依赖），见姊妹篇[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md#51-functional_domain_modeling_in_java一本书的-java-25-移植) 5.1 节。
 
-### 7.2 案例二：配置驱动的规则引擎
+### 7.2 示例二：函数式规则引擎
 
-利用函数式接口构建轻量级规则引擎，避免引入 Drools 等重型框架：
+利用函数式接口构建轻量级规则引擎，避免引入 Drools 等重型框架。规则列表此处为演示直接在 `@PostConstruct` 中初始化——生产中同样的 `PricingRule` 结构可以从配置中心、数据库或规则文件加载后构造，管道逻辑不变：
 
 ```java
 @Component
@@ -861,38 +919,44 @@ public class PricingRuleEngine {
     }
 
     public BigDecimal applyPricingRules(Order order, BigDecimal baseAmount) {
-        return rules.stream()
-            .filter(rule -> rule.condition().test(order))
-            .peek(rule -> log.debug("Applying rule: {}", rule.name()))
-            .map(PricingRule::modifier)
-            // 流元素类型（UnaryOperator<BigDecimal>）与累积类型（BigDecimal）不同，
-            // 无法用 2 参数 reduce（其 accumulator 必须是 BinaryOperator<T>），必须走 3 参数版本；
-            // combiner 丢弃右侧结果，仅在顺序流下安全——若要并行应用规则，
-            // 修饰函数必须可交换，并提供能真正合并部分结果的 combiner
-            .reduce(
-                baseAmount,
-                (amount, modifier) -> modifier.apply(amount),
-                (a, b) -> a
-            );
+        // 规则有先后依赖：后一条规则的输入是前一条的输出。
+        // 这是一个保持顺序的左折叠，用显式循环表达最诚实（原因见代码后的说明）
+        BigDecimal amount = baseAmount;
+        for (PricingRule rule : rules) {
+            if (rule.condition().test(order)) {
+                log.debug("Applying rule: {}", rule.name());
+                amount = rule.modifier().apply(amount);
+            }
+        }
+        return amount;
     }
 }
 ```
 
-### 7.3 案例三：函数式错误处理
+**为什么不写成 `rules.stream().map(PricingRule::modifier).reduce(baseAmount, (a, m) -> m.apply(a), (a, b) -> a)`？** 这正是 6.6 节讨论过的契约陷阱：3 参数 `reduce` 的 combiner 必须能把并行产生的部分结果正确合并（且满足 `combiner(u, identity) == u` 的兼容性），`(a, b) -> a` 直接丢弃右侧结果，明确违反契约。顺序流下它碰巧得到正确答案——只是当前实现恰好不调用 combiner；换成并行流结果就静默出错：按上面三条规则（VIP 85 折 → 大单 9 折 → 首单减 50）、初始金额 1000 实测，顺序流稳定得到 715，并行流得到错误值（实测一组常见分段下为 850，具体错值取决于分段方式）。另一个常见误解是"要并行就得让修饰函数可交换"——保持 encounter order 的归约并不要求交换律，要求的是结合律与契约兼容；本场景的真正问题是规则之间有先后依赖（修饰序列不可结合），**单笔订单的定价本质上不可并行**。可以并行的是外层——多笔订单各自同时定价；这与"规则本身被并行执行"是两回事。Java 24+ 也可以用 `Stream.gather(Gatherers.fold(...))` 表达这类顺序折叠（见 9.1 节）。
+
+### 7.3 示例三：函数式错误处理
 
 借鉴 Scala 的 `Either` 模式，在 Java 中实现函数式错误处理：
 
 ```java
-// Result 类型：显式表示成功或失败
+// Result 类型：显式表示成功或失败。
+// 构造器禁 null：new Failure<>(null) 能通过编译，但这个 null 不匹配任何具体
+// 错误 record 模式，会让下方"穷举"switch 在运行时抛 MatchException——空值契约在源头堵死
 public sealed interface Result<T, E> permits Result.Success, Result.Failure {
-    record Success<T, E>(T value) implements Result<T, E> {}
-    record Failure<T, E>(E error) implements Result<T, E> {}
+    record Success<T, E>(T value) implements Result<T, E> {
+        // interface 内嵌套 record 隐式 public，紧凑构造器需显式匹配访问级别
+        public Success { Objects.requireNonNull(value, "value"); }
+    }
+    record Failure<T, E>(E error) implements Result<T, E> {
+        public Failure { Objects.requireNonNull(error, "error"); }
+    }
 
     // 函数式转换
     default <R> Result<R, E> map(Function<T, R> mapper) {
         return switch (this) {
-            // 显式写出类型参数：E 是 phantom type（不出现在构造参数中），
-            // diamond 在嵌套推断场景下无法可靠补全 E
+            // 此处用 diamond（new Success<>(...)）同样可以通过编译；
+            // 显式写出类型参数是为了把 phantom type E 展示在读者眼前
             case Success<T, E>(var value) -> new Success<R, E>(mapper.apply(value));
             case Failure<T, E>(var error) -> new Failure<R, E>(error);
         };
@@ -900,7 +964,9 @@ public sealed interface Result<T, E> permits Result.Success, Result.Failure {
 
     default <R> Result<R, E> flatMap(Function<T, Result<R, E>> mapper) {
         return switch (this) {
-            case Success<T, E>(var value) -> mapper.apply(value);
+            // mapper 返回 null 会让整条链退化成 null、后续调用 NPE，这里选择快速失败
+            case Success<T, E>(var value) -> Objects.requireNonNull(
+                mapper.apply(value), "flatMap mapper must return a Result, not null");
             case Failure<T, E>(var error) -> new Failure<R, E>(error);
         };
     }
@@ -922,6 +988,8 @@ public Result<PaymentResponse, PaymentError> processPayment(PaymentRequest reque
         .map(this::enrichResponse);                         // Result<PaymentResponse, PaymentError>
 }
 ```
+
+三个运行时契约需要与"类型穷举"分开说清：**`Success(null)` 同样被构造器拒绝**——需要表达"成功但无值"时用 `Success(Optional.empty())`，而不是放开 null；**mapper 抛出的异常会直接传播**，不会自动转换成 `Failure`——需要"把异常捕获为值"的管道要用 `Try` 类工具（见姊妹篇 3.1 节）；类型穷举保证的是"覆盖所有**声明的**失败形态"，而"所有运行时输入都安全"依赖的是上面的构造器约束。两者是不同层面的保证，缺一不可。
 
 **把 E 升级为 ADT 错误谱系**
 
@@ -962,9 +1030,9 @@ Vavr 提供了成熟的 `Either` / `Validation` 实现（`Validation` 支持错�
 
 ## 8. 性能考量与生产环境最佳实践
 
-### 8.1 Stream 性能优化的黄金法则
+### 8.1 Stream 性能优化的实践经验
 
-**法则一：避免装箱**
+**要点一：避免装箱**
 
 ```java
 // 性能陷阱： boxed Stream 比原始流慢数倍（装箱/拆箱开销）
@@ -975,9 +1043,9 @@ long slow = numbers.stream().mapToLong(Integer::longValue).sum();
 long fast = IntStream.range(0, 1_000_000).asLongStream().sum();
 ```
 
-**法则二：谨慎使用并行流**
+**要点二：谨慎使用并行流**
 
-并行流的收益遵循 **NQ 模型**：当 `N（元素数量） x Q（单元素处理成本）> 10,000` 时才考虑并行化。此外还需满足：
+并行流的收益可用 **NQ 模型**估计：`N（元素数量） x Q（单元素处理成本）`明显超过 10,000 量级时才值得考虑并行化。注意这是一条经验法则（heuristic）而非可移植的硬阈值——Q 的量纲、硬件、任务拆分与调度成本、顺序约束和系统负载都会移动这条线，最终以你运行环境中的基准测试为准。此外还需满足：
 - 数据源可分割（ArrayList、数组、`IntStream.range`）
 - 操作无状态、无副作用
 - 考虑共享 ForkJoinPool 的隔离性
@@ -991,16 +1059,22 @@ try {
             .map(this::expensiveTransformation)
             .collect(Collectors.toList())
     ).get();
-} catch (Exception e) {
-    throw new RuntimeException(e);
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();  // 恢复中断状态，让上层有机会感知并中止
+    throw new IllegalStateException("Parallel computation interrupted", e);
+} catch (ExecutionException e) {
+    // 解包出管道内抛出的真实业务异常，而不是把它们埋进一层笼统的 RuntimeException
+    Throwable cause = e.getCause();
+    throw cause instanceof RuntimeException re ? re : new RuntimeException(cause);
 } finally {
-    customPool.shutdown();
+    customPool.shutdown();  // 停止接收新任务并等待已提交任务完成；
+                            // 不会中断正在执行的任务——需要中断用 shutdownNow()
 }
 ```
 
-**法则三：警惕有状态操作**
+**要点三：警惕有状态操作**
 
-`sorted()`、`distinct()`、`limit()` 等操作需要维护内部状态，可能破坏管道的惰性求值或引入同步开销：
+`sorted()`、`distinct()`、`limit()` 等操作需要维护内部状态。注意它们并没有失去"中间操作惰性求值"的性质——不调用终止操作就什么都不会执行；真正的代价在求值开始之后：`sorted()` 必须缓冲全部上游元素才能向下游输出（推迟下游首元素的到达、占用 O(n) 内存），并行管道中有状态操作还会形成分阶段屏障（先整体完成排序/去重，再统一向下游推送）：
 
 ```java
 // sorted() 需要缓冲所有元素，大数据集时考虑外部排序
@@ -1012,7 +1086,7 @@ List<Order> sorted = orders.stream()
 
 ### 8.2 Lambda 与匿名内部类的选择
 
-虽然 Lambda 在语法上类似于匿名内部类，但在字节码层面它们完全不同。Lambda 通过 `invokedynamic` 实现，具有更好的性能和灵活性。在以下场景优先使用 Lambda：
+虽然 Lambda 在语法上类似于匿名内部类，但在字节码层面它们完全不同。Lambda 通过 `invokedynamic` 实现——实现类的生成推迟到首次调用、且可被未来的 JVM 优化替换，这是机制上的优化空间；但"Lambda 一定比匿名类快"并无保证，实际差异须经测量。在以下场景优先使用 Lambda：
 
 1. 函数式接口的简单实现
 2. Stream 操作中的中间处理
@@ -1029,7 +1103,8 @@ button.addActionListener(new ActionListener() {
     }
 });
 
-// Lambda：this 直接指代外围类实例，无需（也无法）显式限定
+// Lambda：this 直接指代外围类实例，通常无需显式限定
+// （需要时写 Outer.this 同样合法——只是多数场景不再必要）
 button.addActionListener(e -> processOrder(orderId));
 ```
 
@@ -1052,6 +1127,8 @@ public static <T> Consumer<T> logged(String stage, Logger log) {
     return item -> log.debug("[{}] processing item: {}", stage, item);
 }
 ```
+
+使用 `peek` 有一条硬边界：它**只适合辅助观察，不保证逐元素执行**。最典型的反例：`Stream.of(1, 2, 3).peek(x -> log.debug("{}", x)).count()` 返回 3，而 `peek` 一次都不会执行——流源可直接给出大小且管道无元素过滤时（JDK 9+ 优化），`count()` 不遍历管道；短路操作提前结束也会让部分元素根本不流经后续阶段。因此 `peek` 绝不能用于必须发生的审计、计数或业务副作用——那些逻辑属于 `forEach`、`collect` 等终止操作，或干脆独立成方法。
 
 ### 8.4 内存管理与逃逸分析
 
@@ -1086,6 +1163,8 @@ List<Double> movingAvg = Stream.of(1, 2, 3, 4, 5, 6)
 // 结果: [2.0, 3.0, 4.0, 5.0]
 ```
 
+除窗口操作外，`Gatherers` 类还内置了 `fold`（顺序折叠：增量累积、流结束时产出单个结果——正是 6.6 与 7.2 节"保持顺序的左折叠"的库表达）、`scan`（前缀扫描）与 `mapConcurrent`（有界并发映射）。值得一提的是 Gatherer 体系对顺序性的处理：不适合并行的 gatherer 可以不提供 combiner（如 `windowFixed`，JEP 485 的示例注释明确说明省略 combiner 是因为该操作"本质上顺序、不可并行化"），库会按 encounter order 顺序求值——"本质上顺序"由此成为 API 层面的显式声明；对比之下，3 参数 `reduce` 强制你为一个满足不了契约的 combiner 编造实现（6.6 节的陷阱）。
+
 ### 9.2 模式匹配与 Record 模式的融合
 
 Java 21 转正的 switch 模式匹配与 Record 模式（instanceof 模式匹配自 Java 16 已转正）与函数式编程形成了强大的组合：
@@ -1108,8 +1187,8 @@ public String describe(Object obj) {
 
 Java 21 引入（preview）的 Scoped Values 与结构化并发（Structured Concurrency）在 Java 25 走向了不同的成熟度：**Scoped Values 已由 JEP 506 正式转正；结构化并发仍处于 JEP 505 的第五次预览**。前者为函数式并发提供了安全的上下文传播机制，后者的 API 在 JEP 505 中经历了破坏性重构，写法与早期预览版已有本质区别：
 
-- 构造器与 `ShutdownOnFailure` / `ShutdownOnSuccess` 子类已被移除，改用静态工厂 `open()`（无参版本即快速失败模式，等价于旧的 `ShutdownOnFailure`）或 `open(Joiner)` 定制汇合策略；
-- `join()` 不再返回 `void`：旧版需要额外调用 `throwIfFailed()` 传播异常，新版 `join()` 直接返回 `Joiner` 的结果，任一子任务失败时取消其余子任务并抛出 `StructuredTaskScope.FailedException`——`throwIfFailed()` 已被删除。
+- 构造器与 `ShutdownOnFailure` / `ShutdownOnSuccess` 子类已被移除，改用静态工厂 `open()`（无参版本实现默认完成策略：任一子任务失败即取消其余子任务，策略上相当于旧的 `ShutdownOnFailure`）或 `open(Joiner)` 定制汇合策略；
+- `join()` 的签名与语义变了：旧版返回 scope 自身（以便链式调用 `join().throwIfFailed()` 传播异常），新版声明为 `R join()`、直接返回 `Joiner` 的结果——无参 `open()` 的默认 Joiner 在全部成功时返回 `null`（API 上是 `StructuredTaskScope<T, Void>`）；任一子任务失败时（默认策略及 `Joiner.awaitAllSuccessfulOrThrow()` 等多数策略下）取消其余子任务并抛出 `StructuredTaskScope.FailedException`——`throwIfFailed()` 已被删除。
 
 ```java
 // Scoped Values：函数式上下文传播（替代 ThreadLocal，JEP 506 已转正）
@@ -1139,14 +1218,14 @@ public Response handleRequest(Request request) throws Exception {
 
 本文深入探讨的核心要点包括：
 
-1. **Lambda 的底层机制**：通过 `invokedynamic` 实现，相比匿名内部类具有更好的性能和 JVM 优化空间
+1. **Lambda 的底层机制**：通过 `invokedynamic` 实现，机制上更具 JVM 优化空间（与匿名内部类的实际性能差异须经测量）
 2. **Stream 的管道融合**：理解 `Sink` 链和惰性求值机制，避免中间集合分配
 3. **Optional 的正确使用**：作为返回类型明确表达空值可能性，避免过度包装
-4. **设计模式的函数式重构与领域建模**：策略、模板方法、职责链等模式通过函数组合实现更灵活的解耦；ADT（sealed + record）与纯函数聚合（Decider）进一步让非法状态不可表示、错误谱系可穷举
-5. **性能意识**：原始类型流避免装箱、并行流的 NQ 决策模型、有状态操作的成本
+4. **设计模式的函数式重构与领域建模**：策略、模板方法、职责链等模式通过函数组合实现更灵活的解耦；ADT（sealed + record）与纯函数聚合（Decider）进一步把不变式固化进构造器、让错误谱系的类型分支可穷举
+5. **性能意识**：原始类型流避免装箱（含 long 累加防溢出）、并行流的 NQ 经验法则、有状态操作的成本
 
 随着 Java 24 Stream Gatherers API 的推出，函数式编程在 Java 生态中的地位将进一步巩固。对于企业级 Java 开发者而言，深入掌握 FP 与 OOP 的融合技术，已不再是可选项，而是构建高质量、可维护系统的核心能力。
 
 ---
 
-*本文基于 Java 21-25 版本特性撰写，代码示例为概念演示，落地时请结合实际项目上下文与依赖（Spring、Lombok、具体 JDK 版本）适配。*
+*本文基于 Java 21-25 版本特性撰写，第 7 章三个示例相互独立、均为概念演示（编排边界与生产前提见 7.1 节末尾说明）；落地时请结合实际项目上下文与依赖（Spring、Lombok、具体 JDK 版本）适配，涉及并行与性能的结论以实际基准测试为准。*

@@ -98,8 +98,9 @@ import org.jooq.lambda.tuple.Tuple2;
 // Tuple2 的 v1/v2 字段即元组解构
 Seq<Tuple2<String, Long>> indexed = Seq.of("a", "b", "c").zipWithIndex();
 
-// foldLeft：JDK 3 参数 reduce 的正确左折叠形态（主篇 6.5、7.2 节讨论过
-// 2 参数 reduce 的类型局限——foldLeft 的累积器类型与元素类型天然可不同）
+// foldLeft：顺序左折叠（主篇 6.6、7.2 节：JDK 的 3 参数 reduce 语法上可表达折叠，
+// 但其 combiner 契约在顺序折叠语义下无法满足，正确的手写形态是显式循环——
+// foldLeft 的价值正是把这条顺序约束直接写进库语义）
 int totalLength = Seq.of("apple", "banana", "cherry")
     .foldLeft(0, (acc, s) -> acc + s.length());
 ```
@@ -139,7 +140,7 @@ int totalLength = Seq.of("apple", "banana", "cherry")
 [fraktalio/fmodel-java](https://github.com/fraktalio/fmodel-java) 的定位是 "Functional and Reactive Domain Modeling with Java"（《函数响应式领域建模》思想的 Java 落地）。它的 `domain` 模块完全隔离于应用层、零外部依赖，README 明确说明只用三样东西构建：records、"sealed hierarchy"、switch 穷举模式匹配——与主篇 6.6 节的技术选型完全一致。除了主篇介绍过的三个组件（`decide: (C, S) → List<E>`、`evolve: (S, E) → S`、`initialState`），它还提供了两类值得偷师的能力：
 
 - **组合子**：`combine`（多个 Decider 合并为一个）与 `dimapState`（状态类型映射）——领域组件的"函数组合"落到了聚合层面；
-- **Given-When-Then 测试 DSL**：`givenEvents(...).whenCommand(...).thenEvents(...)` 的场景化断言，把"对纯函数聚合做完全穷举测试"（主篇 6.6 节的承诺）变成了现成工具。
+- **Given-When-Then 测试 DSL**：`givenEvents(...).whenCommand(...).thenEvents(...)` 的场景化断言，把"对纯函数聚合做确定性场景测试"（主篇 6.6 节的口径：sealed 类型分支可穷举，输入空间靠重放与性质测试）变成了现成工具。
 
 **如实的状态说明**——README 原文：
 
@@ -240,7 +241,7 @@ try (Stream<OrderRecord> orders = ctx
 |----------------|--------|----------|----------|
 | 领域错误的类型化传播 | 主篇 7.3 手写 `Result` + ADT 错误谱系 | Vavr `Either`（快速失败）/ `Validation`（错误累积）；Java 25 团队可评估 Pragmatica core | 5.2（ROP 实战） |
 | 把抛异常的第三方调用纳入管道 | 主篇 5.3 的 try-catch 包装 | Vavr `Try`（按异常类型恢复） | — |
-| Stream 缺 zip / foldLeft / 元组 | 手写 3 参数 reduce 可覆盖 foldLeft 类需求（主篇 6.5、7.2）；zip / 元组无简洁手写等价 | jOOλ | — |
+| Stream 缺 zip / foldLeft / 元组 | foldLeft 可用手写循环覆盖（主篇 6.6、7.2：3 参数 reduce 受 combiner 契约限制）；zip / 元组无简洁手写等价 | jOOλ | — |
 | 窗口 / scan / 自定义中间操作 | **原生 `Gatherers`（Java 24+，主篇 9.1）** | —（勿为此引 jOOλ） | — |
 | 不可变集合的结构共享修改 | `List.of()` + 流式复制 | Vavr 持久化集合 | — |
 | 聚合的事件溯源建模（学习） | 主篇 6.6 手写 `Decider` | —（Java 侧无生产就绪实现） | 4.1 fmodel-java + fmodel-spring-demo |
