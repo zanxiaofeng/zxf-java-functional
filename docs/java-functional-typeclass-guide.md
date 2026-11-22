@@ -1,6 +1,6 @@
 # 函数式类型类知识体系：从合并、变换到效果组合
 
-> 本文是[《Java 函数式编程深度解析：从理论根基到 FP 与 OOP 的融合实践》](java-functional-programming-guide.md)（下称"主篇"）与[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md)（下称"姊妹篇"）的第三篇。主篇讲 Java 的语言机制（Lambda、Stream、Optional），姊妹篇讲生态里的库与框架，本文补上第三块拼图：**这些容器操作背后的统一理论语言——类型类（Type Class）体系**。主篇 5.2 节的 `Optional.flatMap`、4.4 节的 `Collector`、姊妹篇 3.1 节的 `Validation.combine(...).ap(...)`，在这套语言里都有确切的名字与位置。示例签名以 Haskell / Scala Cats 为主（类型类体系在这两个生态中最成体系），每节末尾给出"回望 Java"的衔接注解。
+> 本文是[《Java 函数式编程深度解析：从理论根基到 FP 与 OOP 的融合实践》](java-functional-programming-guide.md)（下称"主篇"）与[《Java 函数式生态与领域建模参考》](java-functional-ecosystem-guide.md)（下称"姊妹篇"）的第三篇。主篇讲 Java 的语言机制（Lambda、Stream、Optional），姊妹篇讲生态里的库与框架，本文补上第三块拼图：**这些容器操作背后的统一理论语言——类型类（Type Class）体系**。主篇 5.2 节的 `Optional.flatMap`、4.4 节的 `Collector`、姊妹篇 3.1 节的 `Validation.combine(...).ap(...)`，在这套语言里都有确切的名字与位置。示例签名采用统一的**伪代码记法**——Scala 风格的类型参数语法加 `×` / `→` 的函数式记法，并非严格的 Haskell / Cats 原生语法（类型类层级与命名以 Haskell base 与 Scala Cats 为准，这两个生态中体系最成体系），每节末尾给出"回望 Java"的衔接注解。
 
 ## 目录
 
@@ -12,7 +12,7 @@
 - [6. 光学结构：Lens 与不可变数据](#6-光学结构lens-与不可变数据)
 - [7. 效果叠加：Monad Transformer](#7-效果叠加monad-transformer)
 - [8. 范畴论背景](#8-范畴论背景)
-- [9. 全景图与 Java 对应表](#9-全景图与-java-对应表)
+- [9. 总览：类型类全景与 Java 对应](#9-总览类型类全景与-java-对应)
 - [10. 总结](#10-总结)
 - [11. 时效性说明与状态快照](#11-时效性说明与状态快照)
 
@@ -20,7 +20,7 @@
 
 ## 1. 引言：类型类是一套关于组合的语言
 
-类型类描述的是**一组类型共同具备的能力**：它类似接口，但有两点关键差异——其一，它更强调"某个类型支持哪些操作"（能力声明），而非"某个对象暴露哪些方法"（行为契约）；其二，它允许**为已有类型补充实例**，不需要修改类型本身的定义。这个"类型与能力分离、事后挂接"的设计，是函数式库能为一整套容器统一提供 `map` / `combine` / `traverse` 的前提。
+类型类描述的是**一组类型共同具备的能力**：它类似接口，但有三点关键差异——其一，它更强调"某个类型支持哪些操作"（能力声明），而非"某个对象暴露哪些方法"（行为契约）；其二，它允许**为已有类型补充实例**，不需要修改类型本身的定义；其三，类型类除签名外还附带**定律**（law，如结合律），但定律是文档契约——编译器检查的只是"实例提供了签名要求的方法"，不会（也无法）证明实例满足定律。Cats 的 cats-laws + Discipline 能把定律变成可运行的属性测试，但那是测试期的保障，不是编译期的。这个"类型与能力分离、事后挂接"的设计，是函数式库能为一整套容器统一提供 `map` / `combine` / `traverse` 的前提。
 
 Haskell 用类型类表达这些能力；Scala 的 Cats、TypeScript 侧的 Effect（前身为 fp-ts，现已官方并入 Effect-TS 生态，见第 11 节）等库提供了对应抽象。
 
@@ -33,7 +33,7 @@ Haskell 用类型类表达这些能力；Scala 的 Cats、TypeScript 侧的 Effe
 - 有的负责**遍历结构**（Foldable / Traversable）
 - 有的负责**改变映射的方向与数量**（Contravariant / Profunctor / Bifunctor）
 
-一个先决事实值得放在最前面：**Java 语言没有类型类，也没有承载它所需的高阶类型**。这不是 Java 的缺陷，而是类型系统的选型差异——但它决定了本文的读法：类型类体系对 Java 开发者的价值不是"直接套用的 API"，而是**给日常已在使用的容器操作（`map`、`flatMap`、`reduce`、`collect`）一套精确的坐标系**，让你能识别手头代码处于哪一层抽象、还缺哪一层、缺的部分要不要手写补齐。
+一个先决事实值得放在最前面，且要说得分层才准确：**Java 语言没有原生的类型类机制**——没有 `instance` 语法、没有按约束自动求解实例；并且**没有高阶类型（HKT），无法对"容器构造器本身"做统一抽象**。这两点的影响范围不同：`Semigroup` / `Monoid` / `Eq` 这类**一阶**类型类只作用于具体类型，Java 完全可以用"泛型接口 + 显式传递实例"编码式表达（`interface Semigroup<A> { A combine(A left, A right); }`——第 2 节末 `BinaryOperator` 的对照就是它的无定律投影）；真正受阻的是 `Functor` / `Applicative` / `Monad` 这一**高阶**轴——类型参数的位置上需要一个"接受类型参数的构造器"（`F<?>`），超出了 Java 类型系统的表达力（第 9 节展开）。这不是 Java 的缺陷，而是类型系统的选型差异——但它决定了本文的读法：类型类体系对 Java 开发者的价值不是"直接套用的 API"，而是**给日常已在使用的容器操作（`map`、`flatMap`、`reduce`、`collect`）一套精确的坐标系**，让你能识别手头代码处于哪一层抽象、还缺哪一层、缺的部分要不要手写补齐。
 
 ---
 
@@ -94,6 +94,8 @@ map(x, identity) == x                       （恒等律）
 map(x, f ∘ g) == map(map(x, g), f)          （复合律）
 ```
 
+还有一个容易忽略的前提：这些定律中的 `==` 是**数学等价**，不是 Java 的 `==` 或 `equals`。null、副作用、异常与对象身份都会让"等价"在日常 Java 代码里失效——定律的可检验性以纯函数为前提，这也是定律与主篇 2.2 节"纯函数"特征的呼应：一个偷偷写日志的 `map`，谈不上满足恒等律。
+
 ### 3.2 Applicative：组合独立的上下文参数
 
 Functor 处理的是"普通函数 + 上下文值"。如果**函数本身也在上下文里**，就需要 Applicative：
@@ -103,13 +105,21 @@ ap: F<A → B> × F<A> → F<B>
 pure: A → F<A>        （把普通值提升进上下文）
 ```
 
-Applicative 的典型用途是**组合多个互相独立的上下文参数**。两个 `Option` 可以用 `mapN` 组合：都为 `Some` 时得到组合结果，任一为 `None` 时整体为 `None`。这里的"**独立**"是关键定语：后一个参数的计算**不依赖**前一个参数的结果——所有参数可以同时求值，这也正是错误累积（所有校验都执行、错误合并上报）与并行求值的结构基础。
+Applicative 的典型用途是**组合多个互相独立的上下文参数**。两个 `Option` 可以用 `mapN` 组合：都为 `Some` 时得到组合结果，任一为 `None` 时整体为 `None`。这里的"**独立**"是关键定语：后一个参数的计算**不依赖**前一个参数的结果——参数之间没有数据依赖。但两个常见推论都必须收着说。**其一，独立不等于可并行**：Applicative 的结构为并行提供了空间，却不承诺并行执行——参数即使没有数据依赖，副作用也可能冲突（写同一个文件、争用同一把锁、要求互斥访问同一资源），因此像 `IO` 这样的实例通常**顺序**求值，"是否并行"是具体实例与执行策略层的事。**其二，错误累积不是 Applicative 的通用保证**，而是特定实例的选择：
+
+- `Option` / `Either` 的 `mapN`：**短路**——任一失败即整体失败，后续校验不再执行；
+- `Validated` 的 `mapN`：**累积**——所有校验都执行，错误用 `Semigroup` 合并上报（注意只需要错误类型有 Semigroup——合并用不到单位元，还谈不上 Monoid）；
+- `IO` / `Future` 的 `mapN`：执行所有效果，失败语义随实例（`Future` 短路在第一个异常）。
+
+把"`Validated` 的累积"说成"Applicative 的累积"，就如同把"`Future` 的异步"说成"Applicative 的异步"——都是把实例性质误当成层级保证。
 
 能力上，Applicative 强于 Functor：如果 F 是 Applicative，就可以用 `ap` 和 `pure` 实现 `map`：
 
 ```text
 map(fa, f) == ap(pure(f), fa)
 ```
+
+反方向，每个 Monad 也都能用 `flatMap` + `map` 派生出 `ap`（`ap(ff, fa) == flatMap(ff, f -> map(fa, f))`）。因此"某个类型是不是 Applicative"问的往往不是能力有无，而是**接口暴露了什么、实例语义选择了什么**——3.3 节的 `Validated` 正是后者的典型。
 
 ### 3.3 Monad：链式依赖与上下文压平
 
@@ -121,7 +131,17 @@ flatMap: F<A> × (A → F<B>) → F<B>
 
 对比一下签名就能看清分界线：Applicative 的参数在进入组合前就已固定；Monad 的下一步函数 `A → F<B>` 拿到**上一步的值**才能产生下一步的上下文。这适合**依赖式链式计算**：先查用户，可能为空；查到用户后再以其 ID 查订单，也可能为空；任何一步失败就整体短路。`Option`、`Either`、`CompletableFuture`、IO 的链式操作，本质上都对应 `flatMap` 或类似操作（JavaScript `Promise.then` 把 map 与 flatMap 合并成一个自动解包的方法，是"类似"而非严格对应）。
 
-Monad 同样有定律（左单位、右单位、结合），核心可浓缩为一句：链式展开的结果必须与"先压平再组合"一致，即 `flatMap` 真的消除了嵌套，而不是再包一层。
+Monad 同样有定律，三条写全（记法与前文一致）：
+
+```text
+flatMap(pure(a), f) == f(a)                                     （左单位）
+flatMap(m, pure) == m                                           （右单位）
+flatMap(flatMap(m, f), g) == flatMap(m, x -> flatMap(f(x), g))  （结合律）
+```
+
+结合律可浓缩为一句：链式展开的结果必须与"先组合再展开"一致——`flatMap` 真的消除了嵌套，而不是再包一层。此外 Monad 的操作与 Applicative 必须保持一致：`ap(pure(f), m) == map(m, f)`，同一类型的两套 API 不能各说各话。值得澄清的是"`flatMap` 就是压平"这个常见印象：`flatMap` ≡ `map` + `join`（`join: F<F<A>> → F<A>`），压平只是表象；真正的能力增量是**序列化**——后一步的函数拿到前一步的**值**才能构造下一步计算，"能压平"是这个依赖能力的副产品。
+
+这层依赖能力也解释了一个经典设计取舍：**`Validated` 为什么停留在 Applicative 层、不提供 Monad 实例**。`flatMap` 的语义是"拿到上一步的结果才能决定下一步"，失败时自然短路——这与错误累积直接冲突（累积要求失败后继续执行其余校验）。所以 Cats 的 `Validated` 刻意不实现 Monad，需要链式时经 `Either` 桥接（`toEither` 转过去 `flatMap`，再转回来）；`flatMap` 与错误累积的冲突由签名决定，是实现绕不开的结构性矛盾，不是工程不便。
 
 三者关系通常写成：
 
@@ -131,7 +151,17 @@ Functor ⊂ Applicative ⊂ Monad
 
 可以概括为：**Functor 只能变换；Applicative 能组合多个独立上下文参数；Monad 能根据前一步结果决定后一步。能力逐层增强，适用范围逐层缩小**——每个 Monad 都是 Applicative，每个 Applicative 都是 Functor；反过来不成立。
 
-> **回望 Java**：这一轴在 JDK 里的对应物最完整。`Optional.map` / `Stream.map` / `CompletableFuture.thenApply` 是 Functor；`Optional.flatMap` / `Stream.flatMap` / `CompletableFuture.thenCompose` 是 Monad（主篇 5.2 节的链式空值处理、7.3 节手写的 `Result` 管道都是 Monad 链）。Applicative 是三者中 Java 缺位最明显的一层：JDK 没有 `pure` / `ap`，组合多个独立上下文要么嵌套 `flatMap`（退化为 Monad 写法、丢失"独立可并行"的语义），要么手写；最接近的现成实现是姊妹篇 3.1 节 Vavr 的 `Validation.combine(...).ap(...)`——它正是用 Applicative 的结构实现错误累积（全部校验都执行、错误合并），而 `Either.flatMap` 链只会在第一个失败处短路。**"错误累积选 Applicative、错误短路选 Monad"**，这是类型类层级直接指导 API 设计的一个实例。
+> **回望 Java**：这一轴在 JDK 里的对应物最完整。`Optional.map` / `Stream.map` / `CompletableFuture.thenApply` 是 Functor（`map`）；`Optional.flatMap` / `Stream.flatMap` / `CompletableFuture.thenCompose` 是 Monad（`flatMap`/bind；主篇 5.2 节的链式空值处理、7.3 节手写的 `Result` 管道都是 Monad 链）。Applicative 这一层要分两句话说：JDK 缺的是**统一命名的抽象**——没有横跨容器的 `pure` / `ap` / `mapN` 接口；但**组合能力散落在具体容器上**，`CompletableFuture` 就是 JDK 里 Applicative 结构最完整的容器：
+>
+> | 类型类操作 | `CompletableFuture` 对应 |
+> |---|---|
+> | `pure` | `completedFuture(x)` |
+> | `map` | `thenApply(f)` |
+> | `map2` | `thenCombine(other, fn)` |
+> | `ap` | `f.thenCombine(x, (fn, a) -> fn.apply(a))`（派生） |
+> | `flatMap` | `thenCompose(f)` |
+>
+> `CompletableFuture.completedFuture(20).thenCombine(CompletableFuture.completedFuture(22), Integer::sum).join()` 得到 `42`，就是一次 map2。两个边界要说清：其一，`thenCombine` 组合的是**结果**——两个上游何时、如何执行由各自的异步构造决定，`thenCombine` 本身不承诺并行；其二，它的失败语义是任一异常即整体以 `CompletionException` 失败，**不累积**错误。`Optional` 则是另一半现实：有 Functor/Monad 层的方法，却没有 mapN/组合操作——多个 `Optional` 参数的独立组合只能嵌套 `map`（得到 `Optional<Optional<...>>`）或手写。这正是"缺统一抽象"的落点形态：**每个容器补齐哪一层是各自的历史决定，没有系统性**。也因此，嵌套 `flatMap` 表达独立组合的代价是明确的：退化为 Monad 写法、丢失"参数独立"的结构语义（3.2 节：独立只是并行的必要条件）。库侧最接近的现成实现是姊妹篇 3.1 节 Vavr 的 `Validation.combine(...).ap(...)`——它正是用 Applicative 的结构实现错误累积（全部校验都执行、错误合并），而 `Either.flatMap` 链只会在第一个失败处短路。**"错误累积选 Applicative、错误短路选 Monad"**，这是类型类层级直接指导 API 设计的一个实例。
 
 ---
 
@@ -157,7 +187,9 @@ traverse: F<A> × (A → G<B>) → G<F<B>>        （要求 G 有 Applicative �
 
 两个细节值得停一下。其一，返回类型 `G<F<B>>` 是一次**翻转**：效果从"元素级"被提到了"整体级"。其二，约束写在 G 上——G 必须是 Applicative，而 Applicative 恰好提供"组合多个独立效果"的机制，`traverse` 的能力正是逐元素效果 + Applicative 组合的乘积。
 
-典型例子是把 `List[Option[Int]]` 翻转为 `Option[List[Int]]`（在 Cats 里这个纯翻转叫 `sequence`，即 `traverse(identity)`）：如果所有元素都是 `Some`，就得到 `Some(List(...))`；只要有一个 `None`，整体就是 `None`——**但列表结构没有被丢弃**。
+典型例子是把 `List[Option[Int]]` 翻转为 `Option[List[Int]]`（在 Cats 里这个纯翻转叫 `sequence`，即 `traverse(identity)`）：如果所有元素都是 `Some`，就得到 `Some(List(...))`；只要有一个 `None`，整体就是 `None`。注意"保形"的确切含义：**成功时结构完整保留；失败时结果里没有结构**——`None` 不携带长度、也不标记失败位置，"要么完整结构、要么无结构"，不存在半截列表。
+
+失败时发生什么、保留多少信息，**由效果类型 G 决定**：G 是 `Option` 时短路在第一个 `None`；G 是 `Validated` 时累积所有错误（与 3.2 节的实例三分一致）；G 是 `List` 时得到所有成功组合的笛卡尔积（非确定性计算）。这与 `map` 形成约束上的对照：`map` 只要求 F 是 Functor，`traverse` 额外要求 G 是 Applicative——"遍历 + 效果组合"的能力，后一半正是从 G 借来的。
 
 一句话对比：**Foldable 消费形状，Traversable 保留形状并组合效果**。
 
@@ -277,16 +309,16 @@ class Applicative m => Monad m       where ...
 
 ---
 
-## 9. 全景图与 Java 对应表
+## 9. 总览：类型类全景与 Java 对应
 
-把全文收拢为一张总表。第三列是"操作在 Java 中的落点"——注意 Java 的落点是**散落在各个具体容器上的同名方法**，而非统一的抽象：
+把全文收拢为一张总表。第四列是"操作在 Java 中的落点"——注意 Java 的落点是**散落在各个具体容器上的同名方法**，而非统一的抽象：
 
 | 类型类 | 核心操作 | 解决的组合问题 | Java 中的落点 |
 |--------|----------|----------------|----------------|
 | Semigroup | `combine` | 值与值合并（结合律） | `BinaryOperator`（无定律承诺） |
 | Monoid | `empty` + `combine` | 有起点的合并、折叠 | `reduce(identity, op)`、`Collectors.toList()` |
 | Functor | `map` | 上下文内变换，保持结构 | `Optional.map` / `Stream.map` / `thenApply` |
-| Applicative | `pure` + `ap` | 组合**独立**上下文参数；错误累积；并行结构 | Vavr `Validation.combine().ap()`（JDK 缺位） |
+| Applicative | `pure` + `ap` | 组合**独立**上下文参数（失败语义与是否并行由实例决定） | `CompletableFuture` 的 `completedFuture` / `thenCombine`（pure/map2 形态）；Vavr `Validation.combine().ap()`——均无统一接口 |
 | Monad | `flatMap` | 依赖式链式组合、压平 | `Optional.flatMap` / `Stream.flatMap` / `thenCompose` |
 | Foldable | `foldMap` / `fold` | 折叠消费结构 | `Stream.reduce` / `collect` |
 | Traversable | `traverse` / `sequence` | 保形遍历 + 效果组合 | 手写 `sequence`（4.2 节） |
@@ -306,7 +338,7 @@ interface Functor<F<?>> {
 }
 ```
 
-`F` 作为"类型构造器"出现在类型参数位置，这超出了 Java 类型系统的表达力。因此 `Optional.map`、`Stream.map`、`thenApply` 三者**结构同构却无法被同一个接口统一**——这就是本文开头所说"坐标系而非 API"的含义：Java 开发者消费的是类型类体系在单个容器上的**投影**，而无法抽象容器本身。Scala 原生支持 `F[_]`，Cats 由此把整张表做成了一等公民；这个差异也是姊妹篇"选型哲学"（范式不依赖库）在类型层面的注脚——Java 团队借用的是**分层思想**，不是库。
+`F` 作为"类型构造器"出现在类型参数位置，这超出了 Java 类型系统的表达力。因此 `Optional.map`、`Stream.map`、`thenApply` 三者**结构同构却无法被同一个接口统一**——这就是本文开头所说"坐标系而非 API"的含义：Java 开发者消费的是类型类体系在单个容器上的**投影**，而无法抽象容器本身（一阶类型类的"接口 + 实例"编码不受此限，见第 1 节；受阻的只是这条高阶轴）。Scala 原生支持 `F[_]`，Cats 由此把整张表做成了一等公民；这个差异也是姊妹篇"选型哲学"（范式不依赖库）在类型层面的注脚——Java 团队借用的是**分层思想**，不是库。
 
 ---
 
@@ -316,7 +348,7 @@ interface Functor<F<?>> {
 
 - **Semigroup / Monoid**：负责合并值——结合律 + 单位元，折叠的起点。
 - **Functor**：负责在上下文中变换值——结构不变。
-- **Applicative**：负责组合多个**独立**上下文参数——错误累积与并行的结构基础。
+- **Applicative**：负责组合多个**独立**上下文参数——独立只是结构事实；错误累积、短路还是并行，由实例决定。
 - **Monad**：负责依赖式链式组合并压平上下文——上一步的值决定下一步。
 - **Foldable**：负责折叠消费结构——形状用完即弃。
 - **Traversable**：负责保持形状的遍历与效果组合——形状与效果都要。
@@ -325,7 +357,7 @@ interface Functor<F<?>> {
 - **Lens 等光学结构**：负责不可变数据的可组合焦点。
 - **Monad Transformer**：负责叠加多种效果。
 
-它们不是互相替代的名词，而是一套**能力逐层叠加、方向彼此对偶**的组合语言。对 Java 开发者，掌握它的意义有两层：**识别**——当代码中反复出现"判空—继续—短路"（Monad）、"遍历—收集—任一失败即整体失败"（Traversable）、"合并—汇总"（Monoid）、"多个校验都要跑完并汇总错误"（Applicative）时，能识别它属于哪一层抽象；**补齐**——知道 JDK 缺的是哪一层（Applicative、Traversable、Lens），缺的部分何时值得手写样板、何时该退回命令式外壳。这套坐标系与主篇的机制、姊妹篇的生态合成完整的三视角：**机制（怎么用）、生态（用什么）、理论（是什么与缺什么）**。
+它们不是互相替代的名词，而是一套**能力逐层叠加、方向彼此对偶**的组合语言。对 Java 开发者，掌握它的意义有两层：**识别**——当代码中反复出现"判空—继续—短路"（Monad）、"遍历—收集—任一失败即整体失败"（Traversable）、"合并—汇总"（Monoid）、"多个校验都要跑完并汇总错误"（Applicative）时，能识别它属于哪一层抽象；**补齐**——知道 JDK 缺的是**统一抽象**这一层（Applicative、Traversable、Lens 没有跨容器的统一接口；具体能力散落在各容器上，如 `CompletableFuture.thenCombine` 就是 map2 形态），缺的部分何时值得手写样板、何时该退回命令式外壳。这套坐标系与主篇的机制、姊妹篇的生态合成完整的三视角：**机制（怎么用）、生态（用什么）、理论（是什么与缺什么）**。
 
 ---
 
